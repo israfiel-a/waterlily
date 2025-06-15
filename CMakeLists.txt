@@ -12,12 +12,13 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 project("RPGtk" LANGUAGES C VERSION 0.0.0.6)
 
-
 # We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
 
 option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
+option(TK_BUILD_EXAMPLE "Toggle the building of the example application." ON)
 option(TK_UPDATE_MODULES "Update/fetch submodules." OFF)
+
 if(${TK_UPDATE_MODULES})
     message(AUTHOR_WARNING "Updating submodules.")
     find_package(Git REQUIRED)
@@ -27,15 +28,13 @@ endif()
 
 include(Helpers)
 run_checks()
-set_options()
-create_target()
+create_target(OFF)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-vulkan")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-window")
 add_dependencies(${PROJECT_NAME} TKVulkan TKWindow)
 target_link_libraries(${PROJECT_NAME} TKVulkan TKWindow)
 
-# Create example application.
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Example")
-add_executable(ExampleApp "${CMAKE_SOURCE_DIR}/Example/Main.c")
-target_link_libraries(ExampleApp ${PROJECT_NAME})
+if(${TK_BUILD_EXAMPLE})
+    add_subdirectory("${CMAKE_SOURCE_DIR}/Example")
+endif()
