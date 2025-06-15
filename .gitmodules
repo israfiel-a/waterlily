@@ -1,0 +1,9 @@
+[submodule "Components/tk-vulkan"]
+	path = Components/tk-vulkan
+	url = https://github.com/RPGtk/tk-vulkan.git
+[submodule "Components/tk-window"]
+	path = Components/tk-window
+	url = https://github.com/RPGtk/tk-window.git
+[submodule "Components/tk-utilities"]
+	path = Components/tk-utilities
+	url = https://github.com/RPGtk/tk-utilities.git
