@@ -29,6 +29,6 @@ jobs:
         sudo apt update
         sudo apt install libwayland-dev
     - name: Configure
-      run: cmake -B ${{ github.workspace }}/buildDirectory -DCMAKE_C_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }}
+      run: cmake -B ${{ github.workspace }}/buildDirectory -DCMAKE_C_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DTK_UPDATE_MODULES=ON
     - name: Build
       run: cmake --build ${{ github.workspace }}/buildDirectory --config ${{ matrix.build_type }} --parallel 9
