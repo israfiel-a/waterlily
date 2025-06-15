@@ -12,9 +12,10 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 project("RPGtk" LANGUAGES C VERSION 0.0.0.2)
 
-option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
-
+# We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
+
+option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
 
 include(Helpers)
 run_checks()
