@@ -10,7 +10,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("RPGtk" LANGUAGES C VERSION 0.0.0.2)
+project("RPGtk" LANGUAGES C VERSION 0.0.0.3)
 
 # We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
@@ -23,3 +23,5 @@ create_target()
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-vulkan")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-window")
+add_dependencies(${PROJECT_NAME} TKVulkan TKWindow)
+target_link_libraries(${PROJECT_NAME} TKVulkan TKWindow)
