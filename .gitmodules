@@ -7,3 +7,6 @@
 [submodule "Components/tk-utilities"]
 	path = Components/tk-utilities
 	url = https://github.com/RPGtk/tk-utilities.git
+[submodule "Components/tk-assets"]
+	path = Components/tk-assets
+	url = https://github.com/RPGtk/tk-assets.git
