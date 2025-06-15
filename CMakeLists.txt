@@ -10,18 +10,19 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("RPGtk" LANGUAGES C VERSION 0.0.0.4)
+project("RPGtk" LANGUAGES C VERSION 0.0.0.5)
 
 # We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
 
 option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
 
-find_package(Git REQUIRED)
-execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --recursive --remote --merge --init
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" RESULT_VARIABLE GIT_SUBMOD_RESULT)
-execute_process(COMMAND ${GIT_EXECUTABLE} add .
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" RESULT_VARIABLE GIT_SUBMOD_RESULT)
+option(TK_UPDATE_MODULES "Update/fetch submodules." OFF)
+if(${TK_UPDATE_MODULES})
+    find_package(Git REQUIRED)
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
 
 include(Helpers)
 run_checks()
