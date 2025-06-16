@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("Example" LANGUAGES C VERSION 0.0.0.2)
+project("Example" LANGUAGES C VERSION 0.0.0.3)
 
 include(Helpers)
 run_checks()
