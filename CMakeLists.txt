@@ -15,6 +15,9 @@ project("RPGtk" LANGUAGES C VERSION 0.0.0.9)
 # We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
 
+include(Helpers)
+run_checks()
+
 option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
 option(TK_BUILD_EXAMPLE "Toggle the building of the example application." ON)
 option(TK_UPDATE_MODULES "Update/fetch submodules." OFF)
@@ -26,8 +29,6 @@ if(${TK_UPDATE_MODULES})
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
-include(Helpers)
-run_checks()
 create_target(OFF)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-assets")
