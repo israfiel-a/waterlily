@@ -10,7 +10,17 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("RPGtk" LANGUAGES C VERSION 0.0.0.12)
+project("RPGtk" LANGUAGES C VERSION 0.0.0.13)
+
+option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
+option(TK_BUILD_EXAMPLE "Toggle the building of the example application." ON)
+option(TK_UPDATE_MODULES "Update/fetch submodules." OFF)
+if(${TK_UPDATE_MODULES})
+    message(AUTHOR_WARNING "Updating submodules.")
+    find_package(Git REQUIRED)
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
 
 # We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
@@ -18,23 +28,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
 include(Helpers)
 run_checks()
 
-option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
-option(TK_BUILD_EXAMPLE "Toggle the building of the example application." ON)
-option(TK_UPDATE_MODULES "Update/fetch submodules." OFF)
-
 if(TK_UNDERLYING)
     set(TK_UNDERLYING_SYSTEM "Wayland")
 else()
     set(TK_UNDERLYING_SYSTEM "X11")
 endif() 
 string(TOUPPER ${TK_UNDERLYING_SYSTEM} TK_UNDERLYING_SYSTEM_UC)
-
-if(${TK_UPDATE_MODULES})
-    message(AUTHOR_WARNING "Updating submodules.")
-    find_package(Git REQUIRED)
-    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-endif()
 
 create_target(OFF)
 
