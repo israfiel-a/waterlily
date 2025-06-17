@@ -2,9 +2,9 @@
 #include <TKVulkan.h>
 #include <TKWindow.h>
 
-bool tk_initialize(void)
+bool tk_initialize(const char *title)
 {
-    if (!tkwin_create()) return false;
+    if (!rpgtk_windowCreate(title)) return false;
 
     const char *defaults[2] = {"default.vert", "default.frag"};
     tkvul_compileShaders(defaults, 2);
