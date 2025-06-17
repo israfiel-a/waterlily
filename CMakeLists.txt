@@ -10,7 +10,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("RPGtk" LANGUAGES C VERSION 0.0.0.10)
+project("RPGtk" LANGUAGES C VERSION 0.0.0.11)
 
 # We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")

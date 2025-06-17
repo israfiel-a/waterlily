@@ -1,6 +1,6 @@
-#ifndef TK_MAIN_H
-#define TK_MAIN_H
+#ifndef RPGTK_MAIN_H
+#define RPGTK_MAIN_H
 
 bool tk_initialize(void);
 
-#endif // TK_MAIN_H
+#endif // RPGTK_MAIN_H
