@@ -10,7 +10,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("RPGtk" LANGUAGES C VERSION 0.0.0.11)
+project("RPGtk" LANGUAGES C VERSION 0.0.0.12)
 
 # We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
@@ -27,6 +27,7 @@ if(TK_UNDERLYING)
 else()
     set(TK_UNDERLYING_SYSTEM "X11")
 endif() 
+string(TOUPPER ${TK_UNDERLYING_SYSTEM} TK_UNDERLYING_SYSTEM_UC)
 
 if(${TK_UPDATE_MODULES})
     message(AUTHOR_WARNING "Updating submodules.")
