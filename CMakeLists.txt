@@ -10,7 +10,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("RPGtk" LANGUAGES C VERSION 0.0.0.9)
+project("RPGtk" LANGUAGES C VERSION 0.0.0.10)
 
 # We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
@@ -21,6 +21,12 @@ run_checks()
 option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
 option(TK_BUILD_EXAMPLE "Toggle the building of the example application." ON)
 option(TK_UPDATE_MODULES "Update/fetch submodules." OFF)
+
+if(TK_UNDERLYING)
+    set(TK_UNDERLYING_SYSTEM "Wayland")
+else()
+    set(TK_UNDERLYING_SYSTEM "X11")
+endif() 
 
 if(${TK_UPDATE_MODULES})
     message(AUTHOR_WARNING "Updating submodules.")
