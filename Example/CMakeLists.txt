@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("Example" LANGUAGES C VERSION 0.0.0.4)
+project("Example" LANGUAGES C VERSION 0.0.0.5)
 
 include(Helpers)
 run_checks(ON)
-create_target(ON)
+create_target(ON RAW_SOURCES "Example")
 
 add_dependencies(Example RPGtk)
 target_link_libraries(Example RPGtk)
