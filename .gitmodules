@@ -10,3 +10,6 @@
 [submodule "Components/tk-assets"]
 	path = Components/tk-assets
 	url = https://github.com/RPGtk/tk-assets.git
+[submodule "Components/tk-logging"]
+	path = Components/tk-logging
+	url = https://github.com/RPGtk/tk-logging.git
