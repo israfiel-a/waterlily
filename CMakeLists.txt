@@ -10,7 +10,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("RPGtk" LANGUAGES C VERSION 0.0.0.17)
+project("RPGtk" LANGUAGES C VERSION 0.0.0.18)
 
 option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
 option(TK_BUILD_EXAMPLE "Toggle the building of the example application." ON)
@@ -44,7 +44,7 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-window")
 add_dependencies(${PROJECT_NAME} TKVulkan TKWindow)
 target_link_libraries(${PROJECT_NAME} TKVulkan TKWindow)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_libraries(${PROJECT_NAME} TKLogging)
 endif()
 
