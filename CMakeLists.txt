@@ -1,21 +1,21 @@
 ################################################################################
-## The configuration files for the RPGtk project. This requires CMake version 
-## 3.10 or higher. The following options effect this file's output:
+## The configuration files for the Waterlily project. This requires CMake 
+## version 3.10 or higher. The following options effect this file's output:
 ##
-## TK_UNDERLYING<ON> - Toggle Wayland (ON) or X11 (OFF) mode.
+## WATERLILY_UNDERLYING<ON> - Toggle Wayland (ON) or X11 (OFF) mode.
 ##
-## Copyright (c) 2025 - RPGtk Team
+## Copyright (c) 2025 - the Waterlily Team
 ## This source code is under the GPLv3. For information on what that entails,
 ## please see <https://www.gnu.org/licenses/gpl-3.0.txt>.
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("RPGtk" LANGUAGES C VERSION 0.0.0.18)
+project("Waterlily" LANGUAGES C VERSION 0.0.0.19)
 
-option(TK_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
-option(TK_BUILD_EXAMPLE "Toggle the building of the example application." ON)
-option(TK_UPDATE_MODULES "Update/fetch submodules." OFF)
-if(${TK_UPDATE_MODULES})
+option(WATERLILY_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
+option(WATERLILY_BUILD_EXAMPLE "Toggle the building of the example application." ON)
+option(WATERLILY_UPDATE_MODULES "Update/fetch submodules." OFF)
+if(${WATERLILY_UPDATE_MODULES})
     message(AUTHOR_WARNING "Updating submodules.")
     find_package(Git REQUIRED)
     execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
@@ -28,26 +28,26 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/tk-utilities")
 include(Helpers)
 run_checks()
 
-if(TK_UNDERLYING)
-    set(TK_UNDERLYING_SYSTEM "Wayland")
+if(WATERLILY_UNDERLYING)
+    set(WATERLILY_UNDERLYING_SYSTEM "Wayland")
 else()
-    set(TK_UNDERLYING_SYSTEM "X11")
+    set(WATERLILY_UNDERLYING_SYSTEM "X11")
 endif() 
-string(TOUPPER ${TK_UNDERLYING_SYSTEM} TK_UNDERLYING_SYSTEM_UC)
+string(TOUPPER ${WATERLILY_UNDERLYING_SYSTEM} WATERLILY_UNDERLYING_SYSTEM_UC)
 
 create_target(OFF RAW_SOURCES "RPGtk")
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-logging")
-add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-assets")
-add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-vulkan")
-add_subdirectory("${CMAKE_SOURCE_DIR}/Components/tk-window")
-add_dependencies(${PROJECT_NAME} TKVulkan TKWindow)
-target_link_libraries(${PROJECT_NAME} TKVulkan TKWindow)
+add_subdirectory("${CMAKE_SOURCE_DIR}/Components/logging")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Components/assets")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Components/vulkan")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Components/window")
+add_dependencies(${PROJECT_NAME} WLVulkan WLWindow)
+target_link_libraries(${PROJECT_NAME} WLVulkan WLTKWindow)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_link_libraries(${PROJECT_NAME} TKLogging)
+    target_link_libraries(${PROJECT_NAME} WLLogging)
 endif()
 
-if(${TK_BUILD_EXAMPLE})
+if(${WATERLILY_BUILD_EXAMPLE})
     add_subdirectory("${CMAKE_SOURCE_DIR}/Example")
 endif()
