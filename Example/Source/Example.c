@@ -1,15 +1,15 @@
-#include <RPGtk.h>
+#include <Waterlily.h>
 
 int main(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
 
-    bool success = rpgtk_initialize("Example");
+    bool success = waterlily_initialize("Example");
     if (!success) return -1;
 
-    rpgtk_run();
+    waterlily_run();
 
-    rpgtk_cleanup();
+    waterlily_cleanup();
     return 0;
 }
