@@ -35,14 +35,14 @@ else()
 endif() 
 string(TOUPPER ${WATERLILY_UNDERLYING_SYSTEM} WATERLILY_UNDERLYING_SYSTEM_UC)
 
-create_target(OFF RAW_SOURCES "RPGtk")
+create_target(OFF RAW_SOURCES ${PROJECT_NAME})
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/Components/logging")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Components/assets")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Components/vulkan")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Components/window")
 add_dependencies(${PROJECT_NAME} WLVulkan WLWindow)
-target_link_libraries(${PROJECT_NAME} WLVulkan WLTKWindow)
+target_link_libraries(${PROJECT_NAME} WLVulkan WLWindow)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_libraries(${PROJECT_NAME} WLLogging)
