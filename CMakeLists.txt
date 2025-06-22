@@ -10,7 +10,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("Waterlily" LANGUAGES C VERSION 0.0.0.20)
+project("Waterlily" LANGUAGES C VERSION 0.0.0.21)
 
 option(WATERLILY_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
 option(WATERLILY_BUILD_EXAMPLE "Toggle the building of the example application." ON)
