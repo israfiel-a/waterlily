@@ -1,15 +1,15 @@
-[submodule "Components/window"]
-	path = Components/window
+[submodule "Window"]
+	path = Window
 	url = https://github.com/waterlily-team/window.git
-[submodule "Components/vulkan"]
-	path = Components/vulkan
+[submodule "Vulkan"]
+	path = Vulkan
 	url = https://github.com/waterlily-team/vulkan.git
-[submodule "Components/assets"]
-	path = Components/assets
+[submodule "Assets"]
+	path = Assets
 	url = https://github.com/waterlily-team/assets.git
-[submodule "Components/logging"]
-	path = Components/logging
-	url = https://github.com/waterlily-team/logging.git
-[submodule "Components/utilities"]
-	path = Components/utilities
-	url = https://github.com/waterlily-team/utilities.git
+[submodule "Utilities"]
+	path = Utilities
+	url = https://github.com/waterlily-team/Utilities.git
+[submodule "Logging"]
+	path = Logging
+	url = https://github.com/waterlily-team/Logging.git
