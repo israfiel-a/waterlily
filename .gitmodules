@@ -13,3 +13,6 @@
 [submodule "Logging"]
 	path = Logging
 	url = https://github.com/waterlily-team/Logging.git
+[submodule "Example"]
+	path = Example
+	url = https://github.com/waterlily-team/example.git
