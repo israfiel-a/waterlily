@@ -10,7 +10,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("Waterlily" LANGUAGES C VERSION 0.0.0.21)
+project("Waterlily" LANGUAGES C VERSION 0.0.0.22)
 
 option(WATERLILY_UNDERLYING "Toggle Wayland (ON) or X11 (OFF) mode." ON)
 option(WATERLILY_BUILD_EXAMPLE "Toggle the building of the example application." ON)
@@ -29,7 +29,7 @@ else()
 endif()
 
 # We need the CMake helpers in this directory.
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/utilities")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Utilities")
 
 include(Helpers)
 run_checks()
@@ -43,10 +43,10 @@ string(TOUPPER ${WATERLILY_UNDERLYING_SYSTEM} WATERLILY_UNDERLYING_SYSTEM_UC)
 
 create_target(OFF RAW_SOURCES ${PROJECT_NAME})
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/Components/logging")
-add_subdirectory("${CMAKE_SOURCE_DIR}/Components/assets")
-add_subdirectory("${CMAKE_SOURCE_DIR}/Components/vulkan")
-add_subdirectory("${CMAKE_SOURCE_DIR}/Components/window")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Logging")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Assets")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Vulkan")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Window")
 add_dependencies(${PROJECT_NAME} WLVulkan WLWindow)
 target_link_libraries(${PROJECT_NAME} WLVulkan WLWindow)
 
