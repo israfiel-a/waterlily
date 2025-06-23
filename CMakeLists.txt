@@ -22,6 +22,12 @@ if(${WATERLILY_UPDATE_MODULES})
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(BUILD_TYPE=0)
+else()
+    add_compile_definitions(BUILD_TYPE=1)
+endif()
+
 # We need the CMake helpers in this directory.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Components/utilities")
 
