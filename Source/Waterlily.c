@@ -6,8 +6,8 @@ bool waterlily_initialize(const char *title)
 {
     if (!waterlily_windowCreate(title)) return false;
 
-    // const char *defaults[2] = {"default.vert", "default.frag"};
-    // tkvul_compileShaders(defaults, 2);
+    const char *defaults[2] = {"default.vert", "default.frag"};
+    waterlily_vulkanCompileShaders(defaults, 2);
 
     return true;
 }
