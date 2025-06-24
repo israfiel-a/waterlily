@@ -4,9 +4,6 @@
 [submodule "Vulkan"]
 	path = Vulkan
 	url = https://github.com/waterlily-team/vulkan.git
-[submodule "Assets"]
-	path = Assets
-	url = https://github.com/waterlily-team/assets.git
 [submodule "Utilities"]
 	path = Utilities
 	url = https://github.com/waterlily-team/Utilities.git
@@ -16,3 +13,6 @@
 [submodule "Example"]
 	path = Example
 	url = https://github.com/waterlily-team/example.git
+[submodule "Ageratum"]
+	path = Ageratum
+	url = https://github.com/waterlily-team/ageratum.git
