@@ -1,6 +1,3 @@
-[submodule "Window"]
-	path = Window
-	url = https://github.com/waterlily-team/window.git
 [submodule "Utilities"]
 	path = Utilities
 	url = https://github.com/waterlily-team/Utilities.git
@@ -16,3 +13,6 @@
 [submodule "Geranium"]
 	path = Geranium
 	url = https://github.com/waterlily-team/geranium.git
+[submodule "Hyacinth"]
+	path = Hyacinth
+	url = https://github.com/waterlily-team/hyacinth.git
