@@ -44,10 +44,10 @@ string(TOUPPER ${WATERLILY_UNDERLYING_SYSTEM} WATERLILY_UNDERLYING_SYSTEM_UC)
 create_target(OFF RAW_SOURCES ${PROJECT_NAME})
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/Logging")
-add_subdirectory("${CMAKE_SOURCE_DIR}/Vulkan")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Geranium")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Window")
-add_dependencies(${PROJECT_NAME} WLVulkan WLWindow)
-target_link_libraries(${PROJECT_NAME} WLVulkan WLWindow)
+add_dependencies(${PROJECT_NAME} Geranium WLWindow)
+target_link_libraries(${PROJECT_NAME} Geranium WLWindow)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_libraries(${PROJECT_NAME} WLLogging)
