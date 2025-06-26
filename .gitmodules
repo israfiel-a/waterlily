@@ -13,6 +13,6 @@
 [submodule "Clover"]
 	path = Clover
 	url = https://github.com/waterlily-team/clover.git
-[submodule "Daylily"]
-	path = Daylily
-	url = https://github.com/waterlily-team/daylily.git
+[submodule "Primrose"]
+	path = Primrose
+	url = https://github.com/waterlily-team/primrose.git
