@@ -10,7 +10,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("Waterlily" LANGUAGES C VERSION 0.0.0.27)
+project("Waterlily" LANGUAGES C VERSION 0.0.0.28)
 
 if(NOT DEFINED CMAKE_BUILD_TYPE)
     message(WARNING "No build type given, assuming debug.")
@@ -118,6 +118,7 @@ if(WATERLILY_EXAMPLE)
         "Example"
         GIT_REPOSITORY "https://github.com/waterlily-team/example.git"
         GIT_TAG "origin/main"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/Example"
     )
     FetchContent_MakeAvailable(Example)
 endif()
