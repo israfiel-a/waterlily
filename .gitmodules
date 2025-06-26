@@ -1,9 +1,3 @@
-[submodule "Utilities"]
-	path = Utilities
-	url = https://github.com/waterlily-team/Utilities.git
-[submodule "Logging"]
-	path = Logging
-	url = https://github.com/waterlily-team/Logging.git
 [submodule "Example"]
 	path = Example
 	url = https://github.com/waterlily-team/example.git
@@ -16,3 +10,9 @@
 [submodule "Hyacinth"]
 	path = Hyacinth
 	url = https://github.com/waterlily-team/hyacinth.git
+[submodule "Clover"]
+	path = Clover
+	url = https://github.com/waterlily-team/clover.git
+[submodule "Daylily"]
+	path = Daylily
+	url = https://github.com/waterlily-team/daylily.git
