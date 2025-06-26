@@ -7,9 +7,6 @@
 [submodule "Hyacinth"]
 	path = Hyacinth
 	url = https://github.com/waterlily-team/hyacinth.git
-[submodule "Clover"]
-	path = Clover
-	url = https://github.com/waterlily-team/clover.git
 [submodule "Primrose"]
 	path = Primrose
 	url = https://github.com/waterlily-team/primrose.git
