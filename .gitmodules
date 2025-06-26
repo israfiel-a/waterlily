@@ -1,6 +1,3 @@
-[submodule "Example"]
-	path = Example
-	url = https://github.com/waterlily-team/example.git
 [submodule "Ageratum"]
 	path = Ageratum
 	url = https://github.com/waterlily-team/ageratum.git
