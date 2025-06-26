@@ -10,7 +10,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("Waterlily" LANGUAGES C VERSION 0.0.0.28)
+project("Waterlily" LANGUAGES C VERSION 0.0.0.29)
 
 if(NOT DEFINED CMAKE_BUILD_TYPE)
     message(WARNING "No build type given, assuming debug.")
@@ -42,7 +42,7 @@ if(WATERLILY_UPDATE_MODULES)
         --recursive WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
-set(WATERLILY_SOURCES "${CMAKE_SOURCE_DIR}/Source/Waterlily.c")
+set(WATERLILY_SOURCES "${CMAKE_SOURCE_DIR}/Waterlily.c")
 include_directories("${CMAKE_SOURCE_DIR}")
 
 set(WATERLILY_SUBPROJECTS "Ageratum" "Geranium" "Hyacinth" "Primrose")
@@ -67,7 +67,7 @@ endforeach()
 foreach(file ${WATERLILY_SOURCES})
     cmake_path(GET file FILENAME FILE_NAME)
     get_source_file_property(CURRENT_CDS ${file} COMPILE_DEFINITIONS)
-    set_source_files_properties(${file} PROPERTIES COMPILE_DEFINITIONS "${CURRENT_CDS};FILENAME=\"${FILE_NAME}.c\"")
+    set_source_files_properties(${file} PROPERTIES COMPILE_DEFINITIONS "${CURRENT_CDS};FILENAME=\"${FILE_NAME}\"")
 endforeach()
 
 if(WATERLILY_WAYLAND)
