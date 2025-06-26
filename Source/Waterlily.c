@@ -1,5 +1,7 @@
 #include <Geranium.h>
 #include <Hyacinth.h>
+#define PRIMROSE_IMPLEMENTATION
+#include <Primrose.h>
 #include <Waterlily.h>
 
 bool waterlily_initialize(const char *title, uint32_t version)
@@ -19,6 +21,7 @@ bool waterlily_initialize(const char *title, uint32_t version)
     hyacinth_getSize(&width, &height);
     if (!waterlily_vulkanInitialize(width, height)) return false;
 
+    primrose_log(SUCCESS, "Initialized engine.");
     return true;
 }
 
@@ -33,4 +36,8 @@ void waterlily_run(void)
     }
 }
 
-void waterlily_cleanup(void) { hyacinth_destroy(); }
+void waterlily_cleanup(void)
+{
+    hyacinth_destroy();
+    primrose_log(SUCCESS, "Cleaned up engine.");
+}
