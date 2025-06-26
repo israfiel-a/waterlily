@@ -1,7 +1,9 @@
 #ifndef WATERLILY_MAIN_H
 #define WATERLILY_MAIN_H
 
-bool waterlily_initialize(const char *title);
+#include <stdint.h>
+
+bool waterlily_initialize(const char *title, uint32_t version);
 
 void waterlily_run(void);
 
