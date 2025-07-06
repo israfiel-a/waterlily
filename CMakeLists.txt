@@ -80,6 +80,10 @@ if(WATERLILY_WAYLAND)
 
     link_libraries(${Wayland_LIBRARIES})
     include_directories(${Wayland_INCLUDE_DIRS})
+else()
+    find_package(X11 REQUIRED)
+    link_libraries(${X11_LIBRARIES})
+    include_directories(${X11_INCLUDE_DIRS}) 
 endif()
 
 find_package(Vulkan REQUIRED COMPONENTS glslang)
@@ -120,5 +124,6 @@ if(WATERLILY_EXAMPLE)
         GIT_TAG "origin/main"
         SOURCE_DIR "${CMAKE_SOURCE_DIR}/Example"
     )
+
     FetchContent_MakeAvailable(Example)
 endif()

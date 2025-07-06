@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-bool waterlily_initialize(const char *title, uint32_t version);
+bool waterlily_initialize(int argc, const char* const *const argv);
 
 void waterlily_run(void);
 

@@ -1,11 +1,47 @@
-#include <Geranium.h>
-#include <Hyacinth.h>
+#include <Waterlily.h>
 #define PRIMROSE_IMPLEMENTATION
 #include <Primrose.h>
-#include <Waterlily.h>
+#include <Ageratum.h>
+#include <Geranium.h>
+#include <Hyacinth.h>
 
-bool waterlily_initialize(const char *title, uint32_t version)
+// get rid of this
+static uint32_t stringToNumber(const char *const string) {
+    uint32_t value = 0;
+    
+    char* stringCopy = (char*)string;
+    while(*stringCopy++ != 0)
+        switch(*stringCopy) {
+            case '0': value *= 10; value += 0; break;
+            case '1': value *= 10; value += 1; break;
+            case '2': value *= 10; value += 2; break;
+            case '3': value *= 10; value += 3; break;
+            case '4': value *= 10; value += 4; break;
+            case '5': value *= 10; value += 5; break;
+            case '6': value *= 10; value += 6; break;
+            case '7': value *= 10; value += 7; break;
+            case '8': value *= 10; value += 8; break;
+            case '9': value *= 10; value += 9; break;
+            default:  break;
+        }
+
+    return value;
+}
+
+bool waterlily_initialize(int argc, const char *const *const argv)
 {
+    const char* const path = argv[0];
+    if(!ageratum_changeDirectory(path)) return false;
+
+    char* title = nullptr;
+    uint32_t version = 0;
+    for(size_t i = 1; i < (size_t)argc; i++) {
+        const char* const arg = argv[i];
+        
+        if(title == nullptr) title = (char*)arg;
+        else version = stringToNumber(arg); 
+    }
+
     if (!hyacinth_create(title)) return false;
 
     const char *defaults[2] = {"default.vert", "default.frag"};
