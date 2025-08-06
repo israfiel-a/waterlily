@@ -58,6 +58,26 @@ typedef struct waterlily_vulkan_surface
     VkExtent2D extent;
 } waterlily_vulkan_surface_t;
 
+typedef struct waterlily_vulkan_pipeline_info
+{
+    VkPipelineVertexInputStateCreateInfo input;
+    VkPipelineInputAssemblyStateCreateInfo assembly;
+    VkViewport viewportData;
+    VkRect2D scissorData;
+    VkPipelineViewportStateCreateInfo viewport;
+    VkPipelineRasterizationStateCreateInfo rasterizer;
+    VkPipelineMultisampleStateCreateInfo multisampling;
+    VkPipelineColorBlendAttachmentState colorBlendAttachment;
+    VkPipelineColorBlendStateCreateInfo colorBlend;
+} waterlily_vulkan_pipeline_info_t;
+
+typedef struct waterlily_vulkan_graphics_pipeline
+{
+    VkPipeline pipeline;
+    VkPipelineLayout layout;
+    VkRenderPass renderpass;
+} waterlily_vulkan_graphics_pipeline_t;
+
 extern const char *const waterlily_vulkan_gExtensions[2];
 static const char *const waterlily_vulkan_gDeviceExtensions[] = {
     "VK_KHR_swapchain",
@@ -123,6 +143,21 @@ bool waterlily_vulkan_partitionSwapchain(VkDevice device,
                                          VkSwapchainKHR swapchain,
                                          uint32_t imageCount,
                                          VkImageView *images);
+
+bool waterlily_vulkan_setupShadersPipeline(
+    const char *const *const stages, size_t count,
+    VkPipelineShaderStageCreateInfo *storage);
+void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_surface_t *surface,
+                                       waterlily_vulkan_pipeline_info_t *info);
+bool waterlily_vulkan_createLayoutPipeline(
+    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline);
+bool waterlily_vulkan_createRenderpassPipeline(
+    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline,
+    waterlily_vulkan_surface_t *surface);
+bool waterlily_vulkan_createPipeline(
+    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline,
+    VkPipelineShaderStageCreateInfo *stages, size_t stageCount,
+    waterlily_vulkan_pipeline_info_t *info);
 
 #endif // WATERLILY_MAIN_H
 

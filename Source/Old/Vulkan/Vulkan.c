@@ -38,133 +38,6 @@ static VkSemaphore pImageAvailableSemaphores[waterlily_CONCURRENT_FRAMES];
 static VkSemaphore pRenderFinishedSemaphores[waterlily_CONCURRENT_FRAMES];
 static VkFence pFences[waterlily_CONCURRENT_FRAMES];
 
-bool createSwapchain(const VkExtent2D *const extent)
-{
-    VkSurfaceFormatKHR format = getSurfaceFormat(pPhysicalDevice);
-    VkPresentModeKHR mode = getSurfaceMode(pPhysicalDevice);
-    VkSurfaceCapabilitiesKHR capabilities = getSurfaceCapabilities(pPhysicalDevice);
-
-    pImageCount = capabilities.minImageCount + 1;
-    if (capabilities.maxImageCount > 0 &&
-        pImageCount > capabilities.maxImageCount)
-        pImageCount = capabilities.maxImageCount;
-
-    VkSwapchainCreateInfoKHR createInfo = {0};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = gSurface;
-    createInfo.minImageCount = pImageCount;
-    createInfo.imageFormat = format.format;
-    createInfo.imageColorSpace = format.colorSpace;
-    createInfo.imageExtent = *extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    createInfo.preTransform = capabilities.currentTransform;
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = mode;
-    createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-    uint32_t indices[2] = {pGraphicsIndex, pPresentIndex};
-    if (indices[0] != indices[1])
-    {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = indices;
-    }
-    else createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateSwapchainKHR(pLogicalDevice, &createInfo, nullptr,
-                             &pSwapchain) != VK_SUCCESS)
-    {
-        fprintf(stderr, "Failed to create swapchain.\n");
-        return false;
-    }
-
-    vkGetSwapchainImagesKHR(pLogicalDevice, pSwapchain, &pImageCount, nullptr);
-    VkImage *images = malloc(sizeof(VkImage) * pImageCount);
-    pSwapchainImages = malloc(sizeof(VkImageView) * pImageCount);
-    pSwapchainFramebuffers = malloc(sizeof(VkFramebuffer) * pImageCount);
-    vkGetSwapchainImagesKHR(pLogicalDevice, pSwapchain, &pImageCount, images);
-
-    VkImageViewCreateInfo imageCreateInfo = {0};
-    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    imageCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imageCreateInfo.format = format.format;
-    imageCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    imageCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    imageCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    imageCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    imageCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    imageCreateInfo.subresourceRange.baseMipLevel = 0;
-    imageCreateInfo.subresourceRange.levelCount = 1;
-    imageCreateInfo.subresourceRange.baseArrayLayer = 0;
-    imageCreateInfo.subresourceRange.layerCount = 1;
-
-    for (size_t i = 0; i < pImageCount; i++)
-    {
-        imageCreateInfo.image = images[i];
-        if (vkCreateImageView(pLogicalDevice, &imageCreateInfo, nullptr,
-                              &pSwapchainImages[i]) != VK_SUCCESS)
-        {
-            fprintf(stderr, "Failed to create image view %zu.", i);
-            return false;
-        }
-    }
-
-    return true;
-}
-
-uint32_t scoreDevice(VkPhysicalDevice device, const char **extensions,
-                     size_t extensionCount)
-{
-    VkPhysicalDeviceProperties properties;
-    VkPhysicalDeviceFeatures features;
-    vkGetPhysicalDeviceProperties(device, &properties);
-    vkGetPhysicalDeviceFeatures(device, &features);
-
-    uint32_t score = 0;
-    switch (properties.deviceType)
-    {
-        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:   score += 4; break;
-        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: score += 3; break;
-        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:    score += 2; break;
-        default:                                     score += 1; break;
-    }
-
-    uint32_t availableExtensionCount = 0;
-    vkEnumerateDeviceExtensionProperties(device, nullptr,
-                                         &availableExtensionCount, nullptr);
-    VkExtensionProperties *availableExtensions =
-        malloc(sizeof(VkExtensionProperties) * availableExtensionCount);
-    vkEnumerateDeviceExtensionProperties(
-        device, nullptr, &availableExtensionCount, availableExtensions);
-
-    size_t foundCount = 0;
-    for (size_t i = 0; i < availableExtensionCount; i++)
-    {
-        VkExtensionProperties extension = availableExtensions[i];
-
-        for (size_t j = 0; j < extensionCount; j++)
-            if (strcmp(extension.extensionName, extensions[j]) == 0)
-            {
-                foundCount++;
-                printf("Found: %s device extension.\n",
-                       extension.extensionName);
-                break;
-            }
-    }
-    free(availableExtensions);
-    if (foundCount != extensionCount)
-    {
-        fprintf(stderr, "Failed to find all device extensions.\n");
-        return 0;
-    }
-
-    // TODO: Extra grading to be done here.
-
-    return score;
-}
-
 bool createFramebuffers(const VkExtent2D *const extent)
 {
     VkFramebufferCreateInfo framebufferInfo = {0};
@@ -392,6 +265,26 @@ bool createDevice(uint32_t framebufferWidth, uint32_t framebufferHeight)
 
     return true;
 }
+
+void beginRenderpass(VkFramebuffer framebuffer, VkCommandBuffer buffer,
+                     const VkExtent2D *const extent)
+{
+    VkRenderPassBeginInfo renderPassInfo = {0};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = gRenderpass;
+    renderPassInfo.framebuffer = framebuffer;
+    renderPassInfo.renderArea.offset = (VkOffset2D){0, 0};
+    renderPassInfo.renderArea.extent = *extent;
+
+    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = &clearColor;
+
+    vkCmdBeginRenderPass(buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      pGraphicsPipeline);
+}
+
 
 bool waterlily_create(const char *name, uint32_t version)
 {

@@ -7,7 +7,14 @@ bool waterlily_vulkan_partitionSwapchain(VkDevice device,
                                          VkImageView *images)
 {
     VkImage rawImages[imageCount];
-    vkGetSwapchainImagesKHR(device, swapchain, &imageCount, rawImages);
+    VkResult code =
+        vkGetSwapchainImagesKHR(device, swapchain, &imageCount, rawImages);
+    if (code != VK_SUCCESS)
+    {
+        waterlily_engine_log(ERROR, "Failed to get swapchain images, code %d.",
+                             code);
+        return false;
+    }
 
     VkImageViewCreateInfo imageCreateInfo = {0};
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -25,7 +32,7 @@ bool waterlily_vulkan_partitionSwapchain(VkDevice device,
         if (result != VK_SUCCESS)
         {
             waterlily_engine_log(
-                ERROR, "Failed to create image view %zu, code %d.", i);
+                ERROR, "Failed to create image view %zu, code %d.", i, result);
             return false;
         }
         waterlily_engine_log(SUCCESS, "Created image view %zu.", i);
