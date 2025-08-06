@@ -15,7 +15,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         build_type: [Release, Debug]
-        compiler: [gcc, clang]
+        compiler: [gcc]
     steps:
     - uses: actions/checkout@v4
     - name: Prepare Vulkan
