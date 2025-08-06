@@ -1,7 +1,2 @@
-.vscode
 build
-.build
 .cache
-.clangd
-.clang-format
-Example
