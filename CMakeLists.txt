@@ -57,7 +57,7 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/GetPhysical.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/CreateLogical.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/DestroyGPU.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetCapabilities.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetExtent.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetFormat.c"
