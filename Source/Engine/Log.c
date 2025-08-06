@@ -1,6 +1,5 @@
 #include <Waterlily.h>
 #include <stdarg.h>
-#include <stdio.h>
 
 void(waterlily_engine_log)(const waterlily_log_t *data,
                            const char *const format, ...)

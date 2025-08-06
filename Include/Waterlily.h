@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <vulkan/vulkan.h>
 
 typedef struct waterlily_arguments
@@ -158,6 +159,11 @@ bool waterlily_vulkan_createPipeline(
     VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline,
     VkPipelineShaderStageCreateInfo *stages, size_t stageCount,
     waterlily_vulkan_pipeline_info_t *info);
+
+bool waterlily_files_open(const char *const path, FILE *file);
+static inline void waterlily_files_close(FILE *file) { fclose(file); }
+bool waterlily_files_measure(FILE *file, size_t *length);
+bool waterlily_files_read(FILE *file, size_t count, uint8_t *buffer);
 
 #endif // WATERLILY_MAIN_H
 
