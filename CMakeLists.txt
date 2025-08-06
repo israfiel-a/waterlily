@@ -46,62 +46,32 @@ endif()
 option(WATERLILY_WAYLAND "Toggle Wayland (ON) or X11 (OFF) mode." ON)
 
 #########################################################################################
-## Flags set to make sure compilation goes the way we want it to.
-#########################################################################################
-
-set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-add_compile_options(-Wall -Wextra -Wpedantic -Werror)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_definitions(BUILD_TYPE=0)
-    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-    add_compile_options(-Og -g3 -ggdb -fanalyzer -fsanitize=address -fsanitize=leak 
-        -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined)
-    add_link_options(-fsanitize=address -fsanitize=undefined)
-else()
-    add_compile_definitions(BUILD_TYPE=1)
-
-    add_compile_options(-march=native -mtune=native -Ofast -flto)
-    add_link_options(-Ofast -flto)
-endif()
-
-if(WATERLILY_WAYLAND)
-    add_compile_definitions(WAYLAND)
-else()
-    add_compile_definitions(X11)
-endif()
-
-add_compile_definitions(WATERLILY_VERSION="${PROJECT_VERSION}")
-
-#########################################################################################
 ## Source file wrangling and processing.
 #########################################################################################
 
 set(WATERLILY_SOURCES 
-    "${CMAKE_SOURCE_DIR}/Source/Engine/Digest.c"
-    "${CMAKE_SOURCE_DIR}/Source/Engine/Log.c"
-    "${CMAKE_SOURCE_DIR}/Source/Engine/Setup.c"
-    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Create.c"
-    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Destroy.c"
-    "${CMAKE_SOURCE_DIR}/Source/Vulkan/GPU/GetPhysical.c"
-    "${CMAKE_SOURCE_DIR}/Source/Vulkan/GPU/CreateLogical.c"
-    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/GetCapabilities.c"
-    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/GetExtent.c"
-    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/GetFormat.c"
-    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/GetMode.c"
+    "${Waterlily_SOURCE_DIR}/Source/Engine/Digest.c"
+    "${Waterlily_SOURCE_DIR}/Source/Engine/Log.c"
+    "${Waterlily_SOURCE_DIR}/Source/Engine/Setup.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Create.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Destroy.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/GetPhysical.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/CreateLogical.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetCapabilities.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetExtent.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetFormat.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetMode.c"
 )
 
 if(WATERLILY_WAYLAND)
     list(APPEND WATERLILY_SOURCES 
-        "${CMAKE_SOURCE_DIR}/Source/Window/Wayland.c"
-        "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/Wayland.c"
+        "${Waterlily_SOURCE_DIR}/Source/Window/Wayland.c"
+        "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/Wayland.c"
     )
 else()
     list(APPEND WATERLILY_SOURCES 
-        "${CMAKE_SOURCE_DIR}/Source/Window/X11.c"
-        "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/X11.c"
+        "${Waterlily_SOURCE_DIR}/Source/Window/X11.c"
+        "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/X11.c"
     )
 endif()
 
@@ -113,12 +83,49 @@ foreach(file ${WATERLILY_SOURCES})
 endforeach()
 
 #########################################################################################
+## Target creation and configuration.
+#########################################################################################
+
+add_library("Waterlily" ${WATERLILY_SOURCES})
+set_target_properties("Waterlily" PROPERTIES 
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    PUBLIC_HEADER "${Waterlily_SOURCE_DIR}/Include/Waterlily.h"
+    C_STANDARD 23
+    CMAKE_C_STANDARD_REQUIRED ON
+)
+target_include_directories("Waterlily" PUBLIC "Waterlily" PUBLIC 
+    "${Waterlily_SOURCE_DIR}/Include")
+
+#########################################################################################
+## Flags set to make sure compilation goes the way we want it to.
+#########################################################################################
+
+target_compile_options("Waterlily" PRIVATE -Wall -Wextra -Wpedantic -Werror)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions("Waterlily" PRIVATE BUILD_TYPE=0)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+    target_compile_options("Waterlily" PRIVATE -Og -g3 -ggdb -fanalyzer -fsanitize=leak 
+        -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract 
+        -fsanitize=undefined)
+    target_link_options("Waterlily" PRIVATE -fsanitize=address -fsanitize=undefined)
+else()
+    target_compile_definitions("Waterlily" PRIVATE BUILD_TYPE=1)
+
+    target_compile_options("Waterlily" PRIVATE -march=native -mtune=native -Ofast -flto)
+    target_link_options("Waterlily" PRIVATE -Ofast -flto)
+endif()
+
+target_compile_definitions("Waterlily" PRIVATE WATERLILY_VERSION="${PROJECT_VERSION}")
+
+#########################################################################################
 ## Dependency dowsing and linking.
 #########################################################################################
 
 find_package(Vulkan REQUIRED COMPONENTS glslang)
-link_libraries(${Vulkan_LIBRARIES})
-include_directories(${Vulkan_INCLUDE_DIRS})
+target_link_libraries("Waterlily" ${Vulkan_LIBRARIES})
+target_include_directories("Waterlily" PUBLIC ${Vulkan_INCLUDE_DIRS})
 
 if(WATERLILY_WAYLAND)
     include(FindPackageHandleStandardArgs)
@@ -130,23 +137,11 @@ if(WATERLILY_WAYLAND)
     find_library(Wayland_LIBRARIES NAMES "wayland-client" HINTS 
         ${Wayland_PKG_CONFIG_LIBRARY_DIRS})
 
-    link_libraries(${Wayland_LIBRARIES})
-    include_directories(${Wayland_INCLUDE_DIRS})
+    target_link_libraries("Waterlily" ${Wayland_LIBRARIES})
+    target_include_directories("Waterlily" PUBLIC ${Wayland_INCLUDE_DIRS})
 else()
     find_package(X11 REQUIRED)
-    link_libraries(${X11_LIBRARIES})
-    include_directories(${X11_INCLUDE_DIRS}) 
+    target_link_libraries("Waterlily" ${X11_LIBRARIES})
+    target_include_directories("Waterlily" PUBLIC ${X11_INCLUDE_DIRS}) 
 endif()
-
-#########################################################################################
-## Target creation and configuration.
-#########################################################################################
-
-add_library("Waterlily" ${WATERLILY_SOURCES})
-set_target_properties("Waterlily" PROPERTIES 
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
-    PUBLIC_HEADER "${CMAKE_SOURCE_DIR}/Include/Waterlily.h"
-)
-target_include_directories("Waterlily" PUBLIC "${CMAKE_SOURCE_DIR}/Include")
 
