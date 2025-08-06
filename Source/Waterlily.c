@@ -1,9 +1,4 @@
 #include <Waterlily.h>
-#define PRIMROSE_IMPLEMENTATION
-#include <Primrose.h>
-#include <Ageratum.h>
-#include <Geranium.h>
-#include <Hyacinth.h>
 
 // get rid of this
 static uint32_t stringToNumber(const char *const string) {
@@ -31,7 +26,7 @@ static uint32_t stringToNumber(const char *const string) {
 bool waterlily_initialize(int argc, const char *const *const argv)
 {
     const char* const path = argv[0];
-    if(!ageratum_changeDirectory(path)) return false;
+    if(!waterlily_changeDirectory(path)) return false;
 
     char* title = nullptr;
     uint32_t version = 0;
@@ -42,31 +37,31 @@ bool waterlily_initialize(int argc, const char *const *const argv)
         else version = stringToNumber(arg); 
     }
 
-    if (!hyacinth_create(title)) return false;
+    if (!waterlily_createWindow(title)) return false;
 
     const char *defaults[2] = {"default.vert", "default.frag"};
-    if (!geranium_compileShaders(defaults, 2)) return false;
+    if (!waterlily_compileShaders(defaults, 2)) return false;
 
-    if (!geranium_create(title, version)) return false;
+    if (!waterlily_create(title, version)) return false;
 
-    primrose_log(SUCCESS, "Initialized engine.");
+    waterlily_log(SUCCESS, "Initialized engine.");
     return true;
 }
 
 void waterlily_run(void)
 {
     uint32_t width, height;
-    hyacinth_getSize(&width, &height);
-    while (hyacinth_process())
+    waterlily_getSizeWindow(&width, &height);
+    while (waterlily_processWindow())
     {
-        if (!geranium_render(width, height)) return;
-        if (!geranium_sync()) return;
+        if (!waterlily_render(width, height)) return;
+        if (!waterlily_sync()) return;
     }
 }
 
 void waterlily_cleanup(void)
 {
-    geranium_destroy();
-    hyacinth_destroy();
-    primrose_log(SUCCESS, "Cleaned up engine.");
+    waterlily_destroy();
+    waterlily_destroy();
+    waterlily_log(SUCCESS, "Cleaned up engine.");
 }

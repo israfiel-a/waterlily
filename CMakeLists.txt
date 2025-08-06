@@ -1,30 +1,78 @@
-################################################################################
-## The configuration files for the Waterlily project. This requires CMake 
-## version 3.10 or higher. The following options effect this file's output:
+#########################################################################################
+## This is the CMake build file for the Waterlily engine. It handles all build 
+## configuration mechanisms, like selecting a windowing backend or turning on/off flags.
 ##
 ## WATERLILY_WAYLAND<ON> - Toggle Wayland (ON) or X11 (OFF) mode.
+## WATERLILY_UPDATE<OFF> - Update/fetch subprojects, this must be done at least once.
+## WATERLILY_EXAMPLE<ON> - Toggle building Rogue, the example application.
 ##
 ## Copyright (c) 2025 - the Waterlily Team
-## This source code is under the GPLv3. For information on what that entails,
-## please see <https://www.gnu.org/licenses/gpl-3.0.txt>.
-################################################################################
+## This source code is under the GPLv3. For information on what that entails, please see 
+## the attached LICENSE.md file or <https://www.gnu.org/licenses/gpl-3.0.txt>.
+#########################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("Waterlily" LANGUAGES C VERSION 0.0.0.30)
+project("Waterlily" LANGUAGES C VERSION 0.0.1 DESCRIPTION 
+    "A comprehensive library for creating RPG games in C23 on Linux.")
+
+#########################################################################################
+## Some quick checks to make sure the operating environment is good.
+#########################################################################################
+
+if(NOT LINUX)
+    message(FATAL_ERROR "This operating system is not supported.")
+endif()
+
+if(NOT CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    message(FATAL_ERROR "This compiler is not supported.")
+endif()
 
 if(NOT DEFINED CMAKE_BUILD_TYPE)
     message(WARNING "No build type given, assuming debug.")
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-if(NOT UNIX OR APPLE)
-    message(FATAL_ERROR "This operating system is not supported by " 
-        "${PROJECT_NAME}.")
-endif()
+#########################################################################################
+## Options that the user may flip on or off to customize the compilation.
+#########################################################################################
 
 option(WATERLILY_WAYLAND "Toggle Wayland (ON) or X11 (OFF) mode." ON)
-option(WATERLILY_EXAMPLE "Toggle the example application." ON)
-option(WATERLILY_UPDATE_MODULES "Update/fetch submodules." OFF)
+option(WATERLILY_UPDATE "Update/fetch subprojects, this must be done at least once." OFF)
+option(WATERLILY_EXAMPLE "Toggle building Rogue, the example application." ON)
+
+#########################################################################################
+## Submodule updates required to fully compile the engine.
+#########################################################################################
+
+if(WATERLILY_EXAMPLE OR WATERLILY_UPDATE)
+    find_package(Git REQUIRED)
+endif()
+
+if(WATERLILY_UPDATE_MODULES)
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive) 
+endif()
+
+#########################################################################################
+## Flags set to make sure compilation goes the way we want it to.
+#########################################################################################
+
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(BUILD_TYPE=0)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+    add_compile_options(-Og -g3 -ggdb -fanalyzer -fsanitize=address -fsanitize=leak 
+        -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined)
+    add_link_options(-fsanitize=address -fsanitize=undefined)
+else()
+    add_compile_definitions(BUILD_TYPE=1)
+
+    add_compile_options(-march=native -mtune=native -Ofast -flto)
+    add_link_options(-Ofast -flto)
+endif()
 
 if(WATERLILY_WAYLAND)
     add_compile_definitions(WAYLAND)
@@ -32,51 +80,58 @@ else()
     add_compile_definitions(X11)
 endif()
 
-if(WATERLILY_EXAMPLE OR WATERLILY_UPDATE_MODULES)
-    find_package(Git REQUIRED)
+#########################################################################################
+## Source file wrangling and processing.
+#########################################################################################
+
+set(WATERLILY_SOURCES 
+    "${CMAKE_SOURCE_DIR}/Include/Waterlily.h"
+    "${CMAKE_SOURCE_DIR}/Source/Waterlily.c"
+    "${CMAKE_SOURCE_DIR}/Source/Window.c"
+    "${CMAKE_SOURCE_DIR}/Source/Vulkan.c"
+    "${CMAKE_SOURCE_DIR}/Source/Surface.c"
+    "${CMAKE_SOURCE_DIR}/Source/Shaders.c"
+    "${CMAKE_SOURCE_DIR}/Source/Pipeline.c"
+    "${CMAKE_SOURCE_DIR}/Source/Log.c"
+    "${CMAKE_SOURCE_DIR}/Source/Assets.c"
+)
+
+if(WATERLILY_WAYLAND)
+    list(APPEND WATERLILY_SOURCES 
+        "${CMAKE_SOURCE_DIR}/Source/Targets/Wayland/Window.c"
+        "${CMAKE_SOURCE_DIR}/Source/Targets/Wayland/Vulkan.c"
+    )
+else()
+    list(APPEND WATERLILY_SOURCES 
+        "${CMAKE_SOURCE_DIR}/Source/Targets/X11/Window.c"
+        "${CMAKE_SOURCE_DIR}/Source/Targets/X11/Vulkan.c"
+    )
 endif()
-
-if(WATERLILY_UPDATE_MODULES)
-    message(WARNING "Updating submodules.")
-    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init 
-        --recursive WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-endif()
-
-set(WATERLILY_SOURCES "${CMAKE_SOURCE_DIR}/Waterlily.c")
-include_directories("${CMAKE_SOURCE_DIR}")
-
-set(WATERLILY_SUBPROJECTS "Ageratum" "Geranium" "Hyacinth" "Primrose")
-foreach(subproject ${WATERLILY_SUBPROJECTS})
-    set(PROJECT_DIRECTORY "${CMAKE_SOURCE_DIR}/${subproject}")
-    include_directories(${PROJECT_DIRECTORY})
-
-    if(IS_DIRECTORY "${PROJECT_DIRECTORY}/Source")
-        file(GLOB PROJECT_SOURCES "${PROJECT_DIRECTORY}/Source/*.c")
-        list(APPEND WATERLILY_SOURCES ${PROJECT_SOURCES})
-    endif()
-
-    if(IS_DIRECTORY "${PROJECT_DIRECTORY}/Targets")
-        if(WATERLILY_WAYLAND)
-            list(APPEND WATERLILY_SOURCES "${PROJECT_DIRECTORY}/Targets/Wayland.c")
-        else()
-            list(APPEND WATERLILY_SOURCES "${PROJECT_DIRECTORY}/Targets/X11.c")
-        endif()
-    endif()
-endforeach()
 
 foreach(file ${WATERLILY_SOURCES})
     cmake_path(GET file FILENAME FILE_NAME)
     get_source_file_property(CURRENT_CDS ${file} COMPILE_DEFINITIONS)
-    set_source_files_properties(${file} PROPERTIES COMPILE_DEFINITIONS "${CURRENT_CDS};FILENAME=\"${FILE_NAME}\"")
+    set_source_files_properties(${file} PROPERTIES COMPILE_DEFINITIONS 
+        "${CURRENT_CDS};FILENAME=\"${FILE_NAME}\"")
 endforeach()
+
+#########################################################################################
+## Dependency dowsing and linking.
+#########################################################################################
+
+find_package(Vulkan REQUIRED COMPONENTS glslang)
+link_libraries(${Vulkan_LIBRARIES})
+include_directories(${Vulkan_INCLUDE_DIRS})
 
 if(WATERLILY_WAYLAND)
     include(FindPackageHandleStandardArgs)
     find_package(PkgConfig REQUIRED)
 
     pkg_check_modules(Wayland_PKG_CONFIG QUIET "wayland-client")
-    find_path(Wayland_INCLUDE_DIRS NAMES "wayland-client.h" HINTS ${Wayland_PKG_CONFIG_INCLUDE_DIRS})
-    find_library(Wayland_LIBRARIES NAMES "wayland-client" HINTS ${Wayland_PKG_CONFIG_LIBRARY_DIRS})
+    find_path(Wayland_INCLUDE_DIRS NAMES "wayland-client.h" HINTS 
+        ${Wayland_PKG_CONFIG_INCLUDE_DIRS})
+    find_library(Wayland_LIBRARIES NAMES "wayland-client" HINTS 
+        ${Wayland_PKG_CONFIG_LIBRARY_DIRS})
 
     link_libraries(${Wayland_LIBRARIES})
     include_directories(${Wayland_INCLUDE_DIRS})
@@ -86,44 +141,25 @@ else()
     include_directories(${X11_INCLUDE_DIRS}) 
 endif()
 
-find_package(Vulkan REQUIRED COMPONENTS glslang)
-link_libraries(${Vulkan_LIBRARIES})
-include_directories(${Vulkan_INCLUDE_DIRS})
+#########################################################################################
+## Target creation and configuration.
+#########################################################################################
 
-set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-add_compile_options(-Wall -Werror -Wpedantic -Wextra -Wno-gnu-zero-variadic-macro-arguments)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_definitions(BUILD_TYPE=0)
-    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-    add_compile_options(-Og -g3 -ggdb -fsanitize=address -fsanitize=pointer-compare  -fsanitize=leak -fsanitize=pointer-subtract -fsanitize=undefined)
-    add_link_options(-fsanitize=address -fsanitize=undefined)
-    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-        add_compile_options(-fanalyzer)
-    endif()
-else()
-    add_compile_definitions(BUILD_TYPE=1)
-    add_compile_options(-march=native -mtune=native -Ofast -flto)
-    add_link_options(-Ofast -flto)
-endif()
-
-add_library(${PROJECT_NAME} ${WATERLILY_SOURCES})
-set_target_properties(${PROJECT_NAME} PROPERTIES 
+add_library("Waterlily" ${WATERLILY_SOURCES})
+set_target_properties("Waterlily" PROPERTIES 
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
-    PUBLIC_HEADER "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.h"
+    PUBLIC_HEADER "${CMAKE_SOURCE_DIR}/Include/Waterlily.h"
 )
+target_include_directories("Waterlily" PUBLIC "${CMAKE_SOURCE_DIR}/Include")
 
 if(WATERLILY_EXAMPLE)
     include(FetchContent)
     FetchContent_Declare(
-        "Example"
-        GIT_REPOSITORY "https://github.com/waterlily-team/example.git"
+        "Rogue"
+        GIT_REPOSITORY "https://github.com/israfiel-a/rogue.git"
         GIT_TAG "origin/main"
-        SOURCE_DIR "${CMAKE_SOURCE_DIR}/Example"
     )
-
-    FetchContent_MakeAvailable(Example)
+    FetchContent_MakeAvailable(Rogue)
 endif()
+
