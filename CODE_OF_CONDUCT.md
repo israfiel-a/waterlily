@@ -15,6 +15,7 @@ As a contributor, you must demonstrate certain standards of behavior in order to
 - Do not, under any circumstances, create any content using or within official spaces of the project that is illegal in the United States of America. This includes, but is not limited to:
   - Child Pornography or CSAM
   - Content glorifying animal cruelty
+  - Content glorifying terrorism
   - Doxxing of any capacity
 
 ---
