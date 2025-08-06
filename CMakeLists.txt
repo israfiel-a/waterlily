@@ -93,6 +93,7 @@ set_target_properties("Waterlily" PROPERTIES
     PUBLIC_HEADER "${Waterlily_SOURCE_DIR}/Include/Waterlily.h"
     C_STANDARD 23
     CMAKE_C_STANDARD_REQUIRED ON
+    EXPORT_COMPILE_COMMANDS ON
 )
 target_include_directories("Waterlily" PUBLIC "${Waterlily_SOURCE_DIR}/Include")
 
@@ -103,7 +104,6 @@ target_include_directories("Waterlily" PUBLIC "${Waterlily_SOURCE_DIR}/Include")
 target_compile_options("Waterlily" PRIVATE -Wall -Wextra -Wpedantic -Werror)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions("Waterlily" PRIVATE BUILD_TYPE=0)
-    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
     target_compile_options("Waterlily" PRIVATE -Og -g3 -ggdb -fanalyzer -fsanitize=leak 
         -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract 
