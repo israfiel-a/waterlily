@@ -1,11 +1,9 @@
 /**
- * @file Wayland.c
- * @authors Israfil Argos
  * @brief This file provides the complete Wayland implementation of the
  * waterlily interface. This only depends upon the default C-standard @c
  * stdint.h, and @c string.h files, and the Wayland client header @c
  * wayland-client.h.
- * @since v0.0.0.2
+ * @since v0.0.1
  *
  * @note This file contains material (the contents of the XDG-shell protocol)
  * copyrighted by the following people. All rights are reserved to their proper
@@ -17,10 +15,20 @@
  * Copyright © 2015-2017 Samsung Electronics Co., Ltd
  * Copyright © 2015-2017 Red Hat Inc.
  *
- * @copyright (c) 2025 - the Waterlily Project
- * This source file is under the GNU General Public License v3.0. For licensing
- * and other information, see the @c LICENSE.md file that should have come with
- * your copy of the source code, or https://www.gnu.org/licenses/gpl-3.0.txt.
+ * @copyright (C) 2025 - Israfil Argos
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <Waterlily.h>
@@ -28,22 +36,12 @@
 #include <wayland-client.h>
 
 /**
- * @var bool gClose
- * @brief The global close variable, which is assigned in order to, well, close
- * the window. This does @b not instantly kill the window, it simply gives a
- * gentle nudge to begin resource deaquisition.
- * @since v0.0.0.20
- */
-bool gClose = false;
-
-/**
- * @def REFREF(expr)
  * @brief Convert an interface into a double-referenced pointer via some casting
  * nonsense. This is for the sole purpose of creating other interfaces (whose
  * function signatures require an "array" of interfaces) and should not be used
  * outside of this purpose. For all intents and purposes, this macro does not
  * exist; ignore it.
- * @since v0.0.0.23
+ * @since v0.0.1
  *
  * @param[in] interface The interface to convert into a double-referenced
  * pointer, or "array".
@@ -52,10 +50,9 @@ bool gClose = false;
 #define REFREF(interface) (const struct wl_interface **)(&interface)
 
 /**
- * @var const struct wl_interface pXDGToplevelInterface
  * @brief The XDG toplevel interface, including functions that can be called and
  * events that can be applied. This is the version seven interface.
- * @since v0.0.0.20
+ * @since v0.0.1
  *
  * @remark Most of the function definitions are missing to remove extraneous
  * data; the interface is still recognized as valid by the server, but we don't
@@ -93,10 +90,9 @@ static const struct wl_interface pXDGToplevelInterface = {
 };
 
 /**
- * @var const struct wl_interface pXDGSurfaceInterface
  * @brief The XDG surface interface, including functions that can be called and
  * events that can be applied. This is the version seven interface.
- * @since v0.0.0.20
+ * @since v0.0.1
  *
  * @remark Some of the function definitions are missing to remove extraneous
  * data; the interface is still recognized as valid by the server, but we don't
@@ -119,10 +115,9 @@ static const struct wl_interface pXDGSurfaceInterface = {
 };
 
 /**
- * @var const struct wl_interface pXDGShellInterface
  * @brief The XDG window manager base interface, including functions that can be
  * called and events that can be applied. This is the version seven interface.
- * @since v0.0.0.20
+ * @since v0.0.1
  *
  * @remark One of the function definitions are missing to remove extraneous
  * data; the interface is still recognized as valid by the server, but we don't
@@ -144,115 +139,102 @@ static const struct wl_interface pXDGShellInterface = {
 };
 
 /**
- * @var struct wl_display *pDisplay
  * @brief The Wayland display server reference we've recieved. This is simply a
  * reference to the display server; the only thing it's useful for is syncing
  * processing and accessing the registry. All other information is accessed via
  * the registry.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static struct wl_display *pDisplay = nullptr;
 
 /**
- * @var struct wl_registry *pRegistry
  * @brief The true core object for the Wayland protocol. We access all other
  * interfaces, like the compositor, monitors, and input devices through this
  * object.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static struct wl_registry *pRegistry = nullptr;
 
 /**
- * @var struct wl_compositor *pCompositor
  * @brief The compositor reference object. We go through this compositor object
  * in order to grab @c wl_surface objects, which are smaller pixel buffers that
  * can be written to to paint contents onto the screen.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static struct wl_compositor *pCompositor = nullptr;
 
 /**
- * @var struct wl_surface *pSurface
  * @brief The @c wl_surface object, basically just a buffer of pixels that will
  * be written to in order to paint content onto the screen.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static struct wl_surface *pSurface = nullptr;
 
 /**
- * @var struct wl_output *pOutput
  * @brief The pixel output device, or monitor. This is the object we pull
  * dimensions from in order to size the window.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static struct wl_output *pOutput = nullptr;
 
 /**
- * @var struct xdg_wm_base *pShell
  * @brief A sort of second-level registry specifically for the XDG-shell
  * extension. This provides the ability to create toplevel interfaces and do
  * other manipulation tasks otherwise nigh impossible with default Wayland.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static struct xdg_wm_base *pShell = nullptr;
 
 /**
- * @var struct xdg_surface *pShellSurface
  * @brief The shell surface, a relatively shallow wrapper around the default @c
  * wl_surface object, including configuration and ping events.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static struct xdg_surface *pShellSurface = nullptr;
 
 /**
- * @var struct xdg_toplevel *pToplevel
  * @brief The toplevel XDG "window". This provides a much more complete wrapper
  * over @c wl_surface, including fullscreen capabilities, which this project
  * requires.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static struct xdg_toplevel *pToplevel = nullptr;
 
 /**
- * @var int32_t pScale
  * @brief The monitor scale of screen coordinates to pixels. This is nearly
  * always one, unless on a display like the Apple Retina.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static int32_t pScale = 0;
 
 /**
- * @var uint32_t pWidth
  * @brief The width of the window in @b pixels. This value is recieved from the
  * display server and multiplied by @ref pScale to grab the actual pixel
  * value.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static uint32_t pWidth = 0;
 
 /**
- * @var uint32_t pHeight
  * @brief The height of the window in @b pixels. This value is recieved from the
  * display server and multiplied by @ref pScale to grab the actual pixel
  * value.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static uint32_t pHeight = 0;
 
 /**
- * @var uint8_t pFoundInterfaces
  * @brief A count of the interfaces we've found reported by the registry. This
  * must match @ref pRequiredInterfaces, or the process will throw a
  * tantrum.
- * @since v0.0.0.35
+ * @since v0.0.1
  */
 static uint8_t pFoundInterfaces = 0;
 
 /**
- * @var uint8_t pRequiredInterfaces
  * @brief A count of the interfaces that the registry @b must report and connect
  * to in order for the process to complete its work successfully.
- * @since v0.0.0.35
+ * @since v0.0.1
  */
 static const uint8_t pRequiredInterfaces = 3;
 
@@ -268,23 +250,21 @@ static void ping(void *, struct xdg_wm_base *b, uint32_t s)
 }
 
 /**
- * @struct xdg_wm_base_listener Wayland.c "Source/Wayland.c"
  * @brief An interface for handling events sent from the XDG "registry" object,
  * @c wm_base. This is basically a nerdy game of table tennis, we just recieve a
  * ping and send back a pong, over and over again so the WM doesn't think we're
  * a zombie.
- * @since v0.0.0.20
+ * @since v0.0.1
  */
 static struct xdg_wm_base_listener
 {
     /**
-     * @property ping
      * @brief The ping event asks the client if it’s still alive. Pass the
      * serial specified in the event back to the compositor by sending a “pong”
      * request back with the specified serial. A compositor is free to ping in
      * any way it wants, but a client must always respond to any xdg_wm_base
      * object it created.
-     * @since v0.0.0.20
+     * @since v0.0.1
      *
      * @remark It’s unspecified what will happen if the client doesn’t respond
      * to the ping request, or in what timeframe.
@@ -297,10 +277,9 @@ static struct xdg_wm_base_listener
     void (*ping)(void *data, struct xdg_wm_base *base, uint32_t serial);
 }
 /**
- * @var struct xdg_wm_base_listener pShellListener
  * @brief The listener for the XDG window manager base object, which is
  * basically the "registry" for the XDG Shell protocol.
- * @since v0.0.0.2
+ * @since v0.0.1
  *
  * @copydoc xdg_wm_base_listener
  */
@@ -316,24 +295,22 @@ static void configure(void *, struct xdg_surface *t, uint32_t s)
                                  wl_proxy_get_version((struct wl_proxy *)t), 0,
                                  s);
     wl_surface_commit(pSurface);
-    waterlily_log(SUCCESS, "Configure request completed.");
+    waterlily_engine_log(SUCCESS, "Configure request completed.");
 }
 
 /**
- * @struct xdg_surface_listener Wayland.c "Source/Wayland.c"
  * @brief An interface for handling events for the @c xdg_surface wrapper around
  * the @c wl_surface object.
- * @since v0.0.0.20
+ * @since v0.0.1
  */
 static const struct xdg_surface_listener
 {
     /**
-     * @property configure
      * @brief The configure event marks the end of a configure sequence. A
      * configure sequence is a set of one or more events configuring the state
      * of the xdg_surface. Clients should send an ack_configure before
      * committing the new surface.
-     * @since v0.0.0.20
+     * @since v0.0.1
      *
      * @remark Where applicable, xdg_surface surface roles will during a
      * configure sequence extend this event as a latched state sent as events
@@ -349,10 +326,9 @@ static const struct xdg_surface_listener
     void (*configure)(void *data, struct xdg_surface *surface, uint32_t serial);
 }
 /**
- * @var struct xdg_surface_listener pShellSurfaceListener
  * @brief The listener for the XDG surface object. This handles exclusvely
  * surface-level configuration-end events sent by the server.
- * @since v0.0.0.2
+ * @since v0.0.1
  *
  * @copydoc xdg_surface_listener
  */
@@ -364,11 +340,12 @@ pShellSurfaceListener = {&configure};
 static void topConfigure(void *, struct xdg_toplevel *, int32_t w, int32_t h,
                          struct wl_array *s)
 {
-    waterlily_log(INFO, "Configure request recieved.");
+    waterlily_engine_log(INFO, "Configure request recieved.");
 
     pWidth = (uint32_t)(w * pScale);
     pHeight = (uint32_t)(h * pScale);
-    waterlily_log(INFO, "Window dimensions adjusted: %dx%d.", pWidth, pHeight);
+    waterlily_engine_log(INFO, "Window dimensions adjusted: %dx%d.", pWidth,
+                         pHeight);
 
     int32_t *i;
     wl_array_for_each(i, s)
@@ -376,12 +353,17 @@ static void topConfigure(void *, struct xdg_toplevel *, int32_t w, int32_t h,
         switch (*i)
         {
             case 2:
-                waterlily_log(INFO, "The window is now fullscreened.");
+                waterlily_engine_log(INFO, "The window is now fullscreened.");
                 break;
-            case 4: waterlily_log(INFO, "The window is now activated."); break;
-            case 9: waterlily_log(INFO, "The window is now suspended."); break;
+            case 4:
+                waterlily_engine_log(INFO, "The window is now activated.");
+                break;
+            case 9:
+                waterlily_engine_log(INFO, "The window is now suspended.");
+                break;
             default:
-                waterlily_log(ERROR, "Got unknown state value '%d'.", *i);
+                waterlily_engine_log(ERROR, "Got unknown state value '%d'.",
+                                     *i);
                 break;
         }
     }
@@ -390,7 +372,10 @@ static void topConfigure(void *, struct xdg_toplevel *, int32_t w, int32_t h,
 /**
  * @copydoc xdg_toplevel_listener::close
  */
-static void closeEvent(void *, struct xdg_toplevel *) { waterlily_closeWindow(); }
+static void close(void *, struct xdg_toplevel *)
+{
+    waterlily_window_close(WATERLILY_CLOSE_ON);
+}
 
 /**
  * @copydoc xdg_toplevel_listener::bounds
@@ -405,31 +390,29 @@ static void capabilities(void *, struct xdg_toplevel *, struct wl_array *c)
     int32_t *i;
     wl_array_for_each(i, c) if (*i == 3)
     {
-        waterlily_log(SUCCESS, "Found fullscreen support.");
+        waterlily_engine_log(SUCCESS, "Found fullscreen support.");
         return;
     }
 
-    waterlily_log(ERROR, "No fullscreen support available.");
+    waterlily_engine_log(ERROR, "No fullscreen support available.");
 }
 
 /**
- * @struct xdg_toplevel_listener Wayland.c "Source/Wayland.c"
  * @brief An interface for handling events for the @c xdg_toplevel structure.
  * This provides a bunch of information about surface dimensions, capabilities,
  * and more.
- * @since v0.0.0.20
+ * @since v0.0.1
  */
 static const struct xdg_toplevel_listener
 {
     /**
-     * @property topConfigure
      * @brief This configure event asks the client to resize its toplevel
      * surface or to change its state. The width and height arguments specify a
      * hint to the window about how its surface should be resized in window
      * geometry coordinates. The states listed in the event specify how the
      * width/height arguments should be interpreted, and possibly how it should
      * be drawn.
-     * @since v0.0.0.20
+     * @since v0.0.1
      *
      * @remark If the width or height arguments are zero, it means the client
      * should decide its own window dimension. This may happen when the
@@ -449,10 +432,9 @@ static const struct xdg_toplevel_listener
                          struct wl_array *states);
 
     /**
-     * @property close
      * @brief The close event is sent by the compositor when the user wants the
      * surface to be closed.
-     * @since v0.0.0.20
+     * @since v0.0.1
      *
      * @remark This is only a request that the user intends to close the window.
      * The client may choose to ignore this request, or show a dialog to ask the
@@ -464,13 +446,12 @@ static const struct xdg_toplevel_listener
     void (*close)(void *data, struct xdg_toplevel *toplevel);
 
     /**
-     * @property bounds
      * @brief The configure_bounds event may be sent prior to a configure event
      * to communicate the bounds a window geometry size is recommended to
      * constrain to. The bounds can for example correspond to the size of a
      * monitor excluding any panels or other shell components, so that a surface
      * isn't created in a way that it cannot fit.
-     * @since v0.0.0.20
+     * @since v0.0.1
      *
      * @remarks If width and height are 0, it means bounds is unknown and
      * equivalent to as if no configure_bounds event was ever sent for this
@@ -485,7 +466,6 @@ static const struct xdg_toplevel_listener
                    int32_t height);
 
     /**
-     * @property capabilities
      * @brief This event advertises the capabilities supported by the
      * compositor. If a capability isn't supported, clients should hide or
      * disable the UI elements that expose this functionality. The
@@ -493,7 +473,7 @@ static const struct xdg_toplevel_listener
      * this event once before the first xdg_surface.configure event. When the
      * capabilities change, compositors must send this event again and then send
      * a configure event.
-     * @since v0.0.0.20
+     * @since v0.0.1
      *
      * @remarks The capabilities are sent as an array of 32-bit unsigned
      * integers in native endianness.
@@ -507,14 +487,13 @@ static const struct xdg_toplevel_listener
                          struct wl_array *capabilities);
 }
 /**
- * @var struct xdg_toplevel_listener pToplevelListener
  * @brief The listener for the XDG toplevel surface object. This handles
  * configuration events and close requests.
- * @since v0.0.0.2
+ * @since v0.0.1
  *
  * @copydoc xdg_toplevel_listener
  */
-pToplevelListener = {&topConfigure, &closeEvent, &bounds, &capabilities};
+pToplevelListener = {&topConfigure, &close, &bounds, &capabilities};
 
 /**
  * @copydoc wl_output_listener::geometry
@@ -543,7 +522,7 @@ static void finish(void *, struct wl_output *) {}
 static void scale(void *, struct wl_output *, int32_t s)
 {
     pScale = s;
-    waterlily_log(INFO, "Monitor scale %d.", pScale);
+    waterlily_engine_log(INFO, "Monitor scale %d.", pScale);
 }
 
 /**
@@ -557,11 +536,10 @@ static void name(void *, struct wl_output *, const char *) {}
 static void description(void *, struct wl_output *, const char *) {}
 
 /**
- * @var struct wl_output_listener pOutputListener
  * @brief The listener for the Wayland output object. This is nearly always a
  * monitor, but is @b always a graphical output device of some kind. We don't
  * care what it is; we're gonna send all our data to it anyway!
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static const struct wl_output_listener pOutputListener = {
     &geometry, &mode, &finish, &scale, &name, &description};
@@ -572,14 +550,15 @@ static const struct wl_output_listener pOutputListener = {
 static void global(void *, struct wl_registry *registry, uint32_t name,
                    const char *interface, uint32_t version)
 {
-    if (__builtin_expect(pFoundInterfaces == pRequiredInterfaces, true)) return;
+    if (__builtin_expect(pFoundInterfaces == pRequiredInterfaces, true))
+        return;
 
     if (strcmp(interface, wl_compositor_interface.name) == 0)
     {
         pCompositor =
             wl_registry_bind(registry, name, &wl_compositor_interface, version);
         pFoundInterfaces++;
-        waterlily_log(SUCCESS, "Connected to compositor v%d.", version);
+        waterlily_engine_log(SUCCESS, "Connected to compositor v%d.", version);
         return;
     }
     else if (strcmp(interface, "xdg_wm_base") == 0)
@@ -589,7 +568,8 @@ static void global(void *, struct wl_registry *registry, uint32_t name,
         (void)wl_proxy_add_listener((struct wl_proxy *)pShell,
                                     (void (**)(void))&pShellListener, nullptr);
         pFoundInterfaces++;
-        waterlily_log(SUCCESS, "Connected to window manager v%d.", version);
+        waterlily_engine_log(SUCCESS, "Connected to window manager v%d.",
+                             version);
         return;
     }
     else if (strcmp(interface, wl_output_interface.name) == 0)
@@ -598,11 +578,12 @@ static void global(void *, struct wl_registry *registry, uint32_t name,
             wl_registry_bind(registry, name, &wl_output_interface, version);
         (void)wl_output_add_listener(pOutput, &pOutputListener, nullptr);
         pFoundInterfaces++;
-        waterlily_log(SUCCESS, "Connected to output device v%d.", version);
+        waterlily_engine_log(SUCCESS, "Connected to output device v%d.",
+                             version);
         return;
     }
 
-    waterlily_log(INFO, "Found unknown interface '%s'.", interface);
+    waterlily_engine_log(INFO, "Found unknown interface '%s'.", interface);
 }
 
 /**
@@ -611,21 +592,20 @@ static void global(void *, struct wl_registry *registry, uint32_t name,
 static void globalRemove(void *, struct wl_registry *, uint32_t) {}
 
 /**
- * @var struct wl_registry_listener pRegistryListener
  * @brief The listener for the Wayland registry object, through which we handle
  * all base objects such as the XDG window manager base object or the output
  * object.
- * @since v0.0.0.2
+ * @since v0.0.1
  */
 static const struct wl_registry_listener pRegistryListener = {&global,
                                                               &globalRemove};
 
-bool waterlily_createWindow(const char *title)
+bool waterlily_window_create(const char *const title)
 {
     pDisplay = wl_display_connect(nullptr);
     if (__builtin_expect(pDisplay == nullptr, false))
     {
-        waterlily_log(ERROR, "Failed to connect to display server.");
+        waterlily_engine_log(ERROR, "Failed to connect to display server.");
         return false;
     }
 
@@ -634,7 +614,7 @@ bool waterlily_createWindow(const char *title)
     (void)wl_display_roundtrip(pDisplay);
     if (__builtin_expect(pFoundInterfaces != pRequiredInterfaces, false))
     {
-        waterlily_log(ERROR, "Could not find the required interfaces.");
+        waterlily_engine_log(ERROR, "Could not find the required interfaces.");
         return false;
     }
 
@@ -671,7 +651,7 @@ bool waterlily_createWindow(const char *title)
     return true;
 }
 
-void waterlily_destroyWindow(void)
+void waterlily_window_destroy(void)
 {
     // xdg_toplevel_destroy
     (void)wl_proxy_marshal_flags(
@@ -696,18 +676,19 @@ void waterlily_destroyWindow(void)
     wl_display_disconnect(pDisplay);
 }
 
-bool waterlily_processWindow(void)
+bool waterlily_window_process(void)
 {
-    return wl_display_dispatch(pDisplay) != -1 && !gClose;
+    return wl_display_dispatch(pDisplay) != -1 &&
+           !waterlily_window_close(WATERLILY_CLOSE_GET);
 }
 
-void waterlily_getSizeWindow(uint32_t *width, uint32_t *height)
+void waterlily_window_measure(uint32_t *width, uint32_t *height)
 {
     *width = pWidth;
     *height = pHeight;
 }
 
-void waterlily_getDataWindow(void **data)
+void waterlily_window_getData(void **data)
 {
     data[0] = pDisplay;
     data[1] = pSurface;

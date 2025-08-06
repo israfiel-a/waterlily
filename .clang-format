@@ -3,15 +3,6 @@ BasedOnStyle:  LLVM
 AccessModifierOffset: 0
 InsertNewlineAtEOF: true
 BreakAfterAttributes: Always
-AllowShortBlocksOnASingleLine: Always
-AllowShortCaseLabelsOnASingleLine: true
-AllowShortIfStatementsOnASingleLine: AllIfsAndElse
-AllowShortLoopsOnASingleLine: true
-AlignConsecutiveShortCaseStatements:
-  Enabled: true
-  AcrossEmptyLines: true
-  AcrossComments: true
-  AlignCaseColons: false
 BreakBeforeBraces: Allman
 IncludeBlocks: Regroup
 IncludeCategories:

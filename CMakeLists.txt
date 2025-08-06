@@ -3,12 +3,19 @@
 ## configuration mechanisms, like selecting a windowing backend or turning on/off flags.
 ##
 ## WATERLILY_WAYLAND<ON> - Toggle Wayland (ON) or X11 (OFF) mode.
-## WATERLILY_UPDATE<OFF> - Update/fetch subprojects, this must be done at least once.
-## WATERLILY_EXAMPLE<ON> - Toggle building Rogue, the example application.
 ##
-## Copyright (c) 2025 - the Waterlily Team
-## This source code is under the GPLv3. For information on what that entails, please see 
-## the attached LICENSE.md file or <https://www.gnu.org/licenses/gpl-3.0.txt>.
+## Copyright (C) 2025 - Israfil Argos
+##
+## This program is free software: you can redistribute it and/or modify it under the 
+## terms of the GNU General Public License as published by the Free Software 
+## Foundation, either version 3 of the License, or (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+## WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+## PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License along with this 
+## program.  If not, see <https://www.gnu.org/licenses/>.
 #########################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
@@ -37,20 +44,6 @@ endif()
 #########################################################################################
 
 option(WATERLILY_WAYLAND "Toggle Wayland (ON) or X11 (OFF) mode." ON)
-option(WATERLILY_UPDATE "Update/fetch subprojects, this must be done at least once." OFF)
-option(WATERLILY_EXAMPLE "Toggle building Rogue, the example application." ON)
-
-#########################################################################################
-## Submodule updates required to fully compile the engine.
-#########################################################################################
-
-if(WATERLILY_EXAMPLE OR WATERLILY_UPDATE)
-    find_package(Git REQUIRED)
-endif()
-
-if(WATERLILY_UPDATE_MODULES)
-    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive) 
-endif()
 
 #########################################################################################
 ## Flags set to make sure compilation goes the way we want it to.
@@ -80,31 +73,35 @@ else()
     add_compile_definitions(X11)
 endif()
 
+add_compile_definitions(WATERLILY_VERSION="${PROJECT_VERSION}")
+
 #########################################################################################
 ## Source file wrangling and processing.
 #########################################################################################
 
 set(WATERLILY_SOURCES 
-    "${CMAKE_SOURCE_DIR}/Include/Waterlily.h"
-    "${CMAKE_SOURCE_DIR}/Source/Waterlily.c"
-    "${CMAKE_SOURCE_DIR}/Source/Window.c"
-    "${CMAKE_SOURCE_DIR}/Source/Vulkan.c"
-    "${CMAKE_SOURCE_DIR}/Source/Surface.c"
-    "${CMAKE_SOURCE_DIR}/Source/Shaders.c"
-    "${CMAKE_SOURCE_DIR}/Source/Pipeline.c"
-    "${CMAKE_SOURCE_DIR}/Source/Log.c"
-    "${CMAKE_SOURCE_DIR}/Source/Assets.c"
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Digest.c"
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Log.c"
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Setup.c"
+    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Create.c"
+    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Destroy.c"
+    "${CMAKE_SOURCE_DIR}/Source/Vulkan/GPU/GetPhysical.c"
+    "${CMAKE_SOURCE_DIR}/Source/Vulkan/GPU/CreateLogical.c"
+    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/GetCapabilities.c"
+    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/GetExtent.c"
+    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/GetFormat.c"
+    "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/GetMode.c"
 )
 
 if(WATERLILY_WAYLAND)
     list(APPEND WATERLILY_SOURCES 
-        "${CMAKE_SOURCE_DIR}/Source/Targets/Wayland/Window.c"
-        "${CMAKE_SOURCE_DIR}/Source/Targets/Wayland/Vulkan.c"
+        "${CMAKE_SOURCE_DIR}/Source/Window/Wayland.c"
+        "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/Wayland.c"
     )
 else()
     list(APPEND WATERLILY_SOURCES 
-        "${CMAKE_SOURCE_DIR}/Source/Targets/X11/Window.c"
-        "${CMAKE_SOURCE_DIR}/Source/Targets/X11/Vulkan.c"
+        "${CMAKE_SOURCE_DIR}/Source/Window/X11.c"
+        "${CMAKE_SOURCE_DIR}/Source/Vulkan/Surface/X11.c"
     )
 endif()
 
@@ -152,14 +149,4 @@ set_target_properties("Waterlily" PROPERTIES
     PUBLIC_HEADER "${CMAKE_SOURCE_DIR}/Include/Waterlily.h"
 )
 target_include_directories("Waterlily" PUBLIC "${CMAKE_SOURCE_DIR}/Include")
-
-if(WATERLILY_EXAMPLE)
-    include(FetchContent)
-    FetchContent_Declare(
-        "Rogue"
-        GIT_REPOSITORY "https://github.com/israfiel-a/rogue.git"
-        GIT_TAG "origin/main"
-    )
-    FetchContent_MakeAvailable(Rogue)
-endif()
 

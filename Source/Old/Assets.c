@@ -33,6 +33,13 @@ static const char *const waterlily_infos[waterlily_TYPE_COUNT][2] = {
     [waterlily_SYSTEM] = {nullptr, nullptr},
 };
 
+bool waterlily_file_access(const waterlily_file_t *const file)
+{
+    char path[waterlily_MAX_PATH_LENGTH];
+    waterlily_file_getPath(file, path);
+    return access(path, F_OK) == 0;
+}
+
 bool waterlily_closeFile(const waterlily_file_t *const file)
 {
     if (__builtin_expect(fclose(file->handle) != 0, 0))
