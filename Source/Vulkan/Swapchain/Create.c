@@ -2,32 +2,27 @@
 
 bool waterlily_vulkan_createSwapchain(VkDevice device, uint32_t *imageCount,
                                       VkSwapchainKHR *swapchain,
-                                      VkSurfaceKHR surface,
+                                      waterlily_vulkan_surface_t *surface,
                                       waterlily_vulkan_queue_indices_t *indices)
 {
-    VkSurfaceFormatKHR format = getSurfaceFormat(pPhysicalDevice);
-    VkPresentModeKHR mode = getSurfaceMode(pPhysicalDevice);
-    VkSurfaceCapabilitiesKHR capabilities =
-        getSurfaceCapabilities(pPhysicalDevice);
-
-    *imageCount = capabilities.minImageCount + 1;
-    if (capabilities.maxImageCount > 0 &&
-        *imageCount > capabilities.maxImageCount)
-        *imageCount = capabilities.maxImageCount;
+    *imageCount = surface->capabilities.minImageCount + 1;
+    if (surface->capabilities.maxImageCount > 0 &&
+        *imageCount > surface->capabilities.maxImageCount)
+        *imageCount = surface->capabilities.maxImageCount;
 
     VkSwapchainCreateInfoKHR createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
+    createInfo.surface = surface->surface;
     createInfo.minImageCount = *imageCount;
-    createInfo.imageFormat = format.format;
-    createInfo.imageColorSpace = format.colorSpace;
-    createInfo.imageExtent = *extent;
+    createInfo.imageFormat = surface->format.format;
+    createInfo.imageColorSpace = surface->format.colorSpace;
+    createInfo.imageExtent = surface->extent;
+    createInfo.presentMode = surface->mode;
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    createInfo.preTransform = capabilities.currentTransform;
+    createInfo.preTransform = surface->capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = mode;
-    createInfo.clipped = VK_TRUE;
+    createInfo.clipped = true;
     createInfo.oldSwapchain = nullptr;
 
     if (indices->graphics != indices->present)

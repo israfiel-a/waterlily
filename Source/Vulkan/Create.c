@@ -18,8 +18,17 @@ bool waterlily_vulkan_create(VkInstance *instance)
         sizeof(waterlily_vulkan_gExtensions) / sizeof(char *);
     instanceInfo.ppEnabledExtensionNames = waterlily_vulkan_gExtensions;
 
-    const char *layers[1] = {"VK_LAYER_KHRONOS_validation"};
-    instanceInfo.enabledLayerCount = 1;
+#if BUILD_TYPE == 0
+    constexpr size_t layerCount = 1;
+    const char *const layers[layerCount] = {
+        "VK_LAYER_KHRONOS_validation",
+    };
+#else
+    constexpr size_t layerCount = 0;
+    const char *const *const layers = nullptr;
+#endif
+
+    instanceInfo.enabledLayerCount = layerCount;
     instanceInfo.ppEnabledLayerNames = layers;
 
     VkResult result = vkCreateInstance(&instanceInfo, nullptr, instance);

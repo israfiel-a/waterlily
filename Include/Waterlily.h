@@ -116,8 +116,11 @@ bool waterlily_vulkan_getModeSurface(VkPhysicalDevice device,
 
 bool waterlily_vulkan_createSwapchain(
     VkDevice device, uint32_t *imageCount, VkSwapchainKHR *swapchain,
-    VkSurfaceKHR surface, waterlily_vulkan_queue_indices_t *indices);
-bool waterlily_vulkan_partitionSwapchain(VkSwapchainKHR swapchain,
+    waterlily_vulkan_surface_t *surface,
+    waterlily_vulkan_queue_indices_t *indices);
+bool waterlily_vulkan_partitionSwapchain(VkDevice device,
+                                         waterlily_vulkan_surface_t *surface,
+                                         VkSwapchainKHR swapchain,
                                          uint32_t imageCount,
                                          VkImageView *images);
 
