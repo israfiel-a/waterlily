@@ -94,8 +94,7 @@ set_target_properties("Waterlily" PROPERTIES
     C_STANDARD 23
     CMAKE_C_STANDARD_REQUIRED ON
 )
-target_include_directories("Waterlily" PUBLIC "Waterlily" PUBLIC 
-    "${Waterlily_SOURCE_DIR}/Include")
+target_include_directories("Waterlily" PUBLIC "${Waterlily_SOURCE_DIR}/Include")
 
 #########################################################################################
 ## Flags set to make sure compilation goes the way we want it to.
