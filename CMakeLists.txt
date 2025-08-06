@@ -101,19 +101,19 @@ target_include_directories("Waterlily" PUBLIC "${Waterlily_SOURCE_DIR}/Include")
 ## Flags set to make sure compilation goes the way we want it to.
 #########################################################################################
 
-target_compile_options("Waterlily" PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options("Waterlily" PUBLIC -Wall -Wextra -Wpedantic -Werror)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions("Waterlily" PRIVATE BUILD_TYPE=0)
 
-    target_compile_options("Waterlily" PRIVATE -Og -g3 -ggdb -fanalyzer -fsanitize=leak 
+    target_compile_options("Waterlily" PUBLIC -Og -g3 -ggdb -fanalyzer -fsanitize=leak 
         -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract 
         -fsanitize=undefined)
-    target_link_options("Waterlily" PRIVATE -fsanitize=address -fsanitize=undefined)
+    target_link_options("Waterlily" PUBLIC -fsanitize=address -fsanitize=undefined)
 else()
     target_compile_definitions("Waterlily" PRIVATE BUILD_TYPE=1)
 
-    target_compile_options("Waterlily" PRIVATE -march=native -mtune=native -Ofast -flto)
-    target_link_options("Waterlily" PRIVATE -Ofast -flto)
+    target_compile_options("Waterlily" PUBLIC -march=native -mtune=native -Ofast -flto)
+    target_link_options("Waterlily" PUBLIC -Ofast -flto)
 endif()
 
 target_compile_definitions("Waterlily" PRIVATE WATERLILY_VERSION="${PROJECT_VERSION}")
