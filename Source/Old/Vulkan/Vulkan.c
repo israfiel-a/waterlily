@@ -3,63 +3,14 @@
 #include <string.h>
 #include <vulkan/vulkan.h>
 
-extern bool createPipeline(const VkExtent2D *const extent,
-                           const VkDevice device, VkFormat format);
-extern void beginRenderpass(VkFramebuffer framebuffer, VkCommandBuffer buffer,
-                            const VkExtent2D *const extent);
-
-extern VkPresentModeKHR getSurfaceMode([[maybe_unused]] VkPhysicalDevice device);
-extern VkSurfaceCapabilitiesKHR getSurfaceCapabilities(VkPhysicalDevice device);
-extern VkExtent2D getSurfaceExtent(uint32_t width, uint32_t height);
-extern VkSurfaceFormatKHR getSurfaceFormat([[maybe_unused]] VkPhysicalDevice device);
-
-extern VkRenderPass gRenderpass;
-extern VkSurfaceKHR gSurface;
-
 static uint32_t currentFrame = 0;
 
-static VkInstance pInstance = nullptr;
-static VkPhysicalDevice pPhysicalDevice = nullptr;
-static VkDevice pLogicalDevice = nullptr;
-static VkQueue pGraphicsQueue = nullptr;
-static VkQueue pPresentQueue = nullptr;
-static uint32_t pGraphicsIndex = 0;
-static uint32_t pPresentIndex = 0;
-
-static VkSwapchainKHR pSwapchain = nullptr;
-static uint32_t pImageCount = 0;
-static VkImageView *pSwapchainImages = nullptr;
 static VkFramebuffer *pSwapchainFramebuffers = nullptr;
-
 static VkCommandPool pCommandPool;
 static VkCommandBuffer pCommandBuffers[waterlily_CONCURRENT_FRAMES];
-
 static VkSemaphore pImageAvailableSemaphores[waterlily_CONCURRENT_FRAMES];
 static VkSemaphore pRenderFinishedSemaphores[waterlily_CONCURRENT_FRAMES];
 static VkFence pFences[waterlily_CONCURRENT_FRAMES];
-
-bool createFramebuffers(const VkExtent2D *const extent)
-{
-    VkFramebufferCreateInfo framebufferInfo = {0};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = gRenderpass;
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.width = extent->width;
-    framebufferInfo.height = extent->height;
-    framebufferInfo.layers = 1;
-
-    for (size_t i = 0; i < pImageCount; i++)
-    {
-        framebufferInfo.pAttachments = &pSwapchainImages[i];
-        if (vkCreateFramebuffer(pLogicalDevice, &framebufferInfo, nullptr,
-                                &pSwapchainFramebuffers[i]) != VK_SUCCESS)
-        {
-            fprintf(stderr, "Failed to create framebuffer.\n");
-            return false;
-        }
-    }
-    return true;
-}
 
 bool createCommandBuffers(void)
 {
@@ -141,125 +92,6 @@ bool recordCommandBuffer(VkCommandBuffer commandBuffer,
     return true;
 }
 
-bool createDevice(uint32_t framebufferWidth, uint32_t framebufferHeight)
-{
-    uint32_t physicalCount = 0;
-    vkEnumeratePhysicalDevices(pInstance, &physicalCount, nullptr);
-    VkPhysicalDevice *physicalDevices =
-        malloc(sizeof(VkPhysicalDevice) * physicalCount);
-    vkEnumeratePhysicalDevices(pInstance, &physicalCount, physicalDevices);
-
-    const size_t extensionCount = 1;
-    const char *extensions[1] = {"VK_KHR_swapchain"};
-
-    VkPhysicalDevice currentChosen = nullptr;
-    uint32_t bestScore = 0;
-    for (size_t i = 0; i < physicalCount; i++)
-    {
-        uint32_t score =
-            scoreDevice(physicalDevices[i], extensions, extensionCount);
-        if (score > bestScore)
-        {
-            currentChosen = physicalDevices[i];
-            bestScore = score;
-        }
-    }
-
-    if (currentChosen == nullptr)
-    {
-        fprintf(stderr, "Failed to find suitable Vulkan device.\n");
-        return false;
-    }
-    pPhysicalDevice = currentChosen;
-    free(physicalDevices);
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(pPhysicalDevice, &queueFamilyCount,
-                                             nullptr);
-
-    VkQueueFamilyProperties *queueFamilies =
-        malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(pPhysicalDevice, &queueFamilyCount,
-                                             queueFamilies);
-
-    bool foundGraphicsQueue = false, foundPresentQueue = false;
-    for (size_t i = 0; i < queueFamilyCount; i++)
-    {
-        if (foundGraphicsQueue && foundPresentQueue) break;
-
-        VkQueueFamilyProperties family = queueFamilies[i];
-        if (family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-        {
-            pGraphicsIndex = i;
-            foundGraphicsQueue = true;
-        }
-
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(pPhysicalDevice, i, gSurface,
-                                             &presentSupport);
-        if (presentSupport)
-        {
-            pPresentIndex = i;
-            foundPresentQueue = true;
-        }
-    }
-
-    if (!foundGraphicsQueue)
-    {
-        fprintf(stderr, "Failed to find graphics queue.\n");
-        return false;
-    }
-
-    if (!foundPresentQueue)
-    {
-        fprintf(stderr, "Failed to find presentation queue.\n");
-        return false;
-    }
-
-    float priority = 1.0f;
-    VkDeviceQueueCreateInfo queueCreateInfos[2] = {{0}, {0}};
-    queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfos[0].queueFamilyIndex = pGraphicsIndex;
-    queueCreateInfos[0].queueCount = 1;
-    queueCreateInfos[0].pQueuePriorities = &priority;
-
-    queueCreateInfos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfos[1].queueFamilyIndex = pPresentIndex;
-    queueCreateInfos[1].queueCount = 1;
-    queueCreateInfos[1].pQueuePriorities = &priority;
-
-    // We don't need any features at the moment.
-    VkPhysicalDeviceFeatures usedFeatures = {0};
-
-    // Layers for logical devices no longer need to be set in newer
-    // implementations.
-    VkDeviceCreateInfo logicalDeviceCreateInfo = {0};
-    logicalDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    logicalDeviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
-    if (pPresentIndex != pGraphicsIndex)
-        logicalDeviceCreateInfo.queueCreateInfoCount = 2;
-    else logicalDeviceCreateInfo.queueCreateInfoCount = 1;
-    logicalDeviceCreateInfo.pEnabledFeatures = &usedFeatures;
-
-    logicalDeviceCreateInfo.enabledExtensionCount = extensionCount;
-    logicalDeviceCreateInfo.ppEnabledExtensionNames = extensions;
-
-    VkResult code = vkCreateDevice(pPhysicalDevice, &logicalDeviceCreateInfo,
-                                   nullptr, &pLogicalDevice);
-    if (code != VK_SUCCESS)
-    {
-        fprintf(stderr, "Failed to create logical device. Code: %d.\n", code);
-        return false;
-    }
-
-    vkGetDeviceQueue(pLogicalDevice, pGraphicsIndex, 0, &pGraphicsQueue);
-    vkGetDeviceQueue(pLogicalDevice, pPresentIndex, 0, &pPresentQueue);
-
-    getSurfaceCapabilities(pPhysicalDevice);
-    VkExtent2D extent = getSurfaceExtent(framebufferWidth, framebufferHeight);
-    if (!createSwapchain(&extent)) return false;
-    if (!createPipeline(&extent, pLogicalDevice, getSurfaceFormat(pPhysicalDevice).format)) return false;
-    if (!createFramebuffers(&extent)) return false;
     if (!createCommandBuffers()) return false;
     if (!createSyncObjects()) return false;
 

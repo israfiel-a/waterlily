@@ -72,6 +72,7 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetFormat.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetMode.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Create.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/CreateFramebuffers.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Partition.c"
 )
 

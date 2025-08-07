@@ -144,6 +144,10 @@ bool waterlily_vulkan_partitionSwapchain(VkDevice device,
                                          VkSwapchainKHR swapchain,
                                          uint32_t imageCount,
                                          VkImageView *images);
+bool waterlily_vulkan_createFramebuffersSwapchain(
+    VkDevice device, waterlily_vulkan_surface_t *surface,
+    VkRenderPass renderpass, uint32_t count, VkImageView *images,
+    VkFramebuffer *framebuffers);
 
 bool waterlily_vulkan_setupShadersPipeline(
     VkDevice device, const char *const *const stages, size_t count,
