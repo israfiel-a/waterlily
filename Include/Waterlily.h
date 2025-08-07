@@ -147,6 +147,8 @@ void waterlily_vulkan_getExtentSurface(uint32_t width, uint32_t height,
                                        waterlily_vulkan_surface_t *surface);
 bool waterlily_vulkan_getModeSurface(VkPhysicalDevice device,
                                      waterlily_vulkan_surface_t *surface);
+void waterlily_vulkan_destroySurface(VkInstance instance,
+                                     waterlily_vulkan_surface_t *surface);
 
 bool waterlily_vulkan_createSwapchain(
     VkDevice device, uint32_t *imageCount, VkSwapchainKHR *swapchain,
@@ -186,6 +188,8 @@ bool waterlily_vulkan_createPipeline(
     VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline,
     VkPipelineShaderStageCreateInfo *stages, size_t stageCount,
     waterlily_vulkan_pipeline_info_t *info);
+void waterlily_vulkan_destroyPipeline(
+    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline);
 
 bool waterlily_vulkan_createBuffersCommand(
     VkDevice device, waterlily_vulkan_queue_indices_t *indices,
@@ -200,6 +204,11 @@ void waterlily_vulkan_beginRenderpassCommand(
 bool waterlily_vulkan_recordBufferCommand(
     VkCommandBuffer commandBuffer, waterlily_vulkan_surface_t *surface,
     waterlily_vulkan_graphics_pipeline_t *pipeline, VkFramebuffer framebuffer);
+void waterlily_vulkan_destroyBuffers(VkDevice device, VkCommandPool pool);
+void waterlily_vulkan_destroySyncs(VkDevice device,
+                                   VkSemaphore *imageAvailableSemaphores,
+                                   VkSemaphore *renderFinishedSemaphores,
+                                   VkFence *fences);
 
 bool waterlily_files_open(const char *const path, FILE **file);
 static inline void waterlily_files_close(FILE *file) { fclose(file); }
