@@ -31,13 +31,13 @@ bool waterlily_engine_digest(int argc, const char *const *const argv,
                       "FPS counter once in-game.");
             return false;
         }
-        else if (strcmp(currentArg, "version"))
+        else if (strcmp(currentArg, "version") == 0)
         {
             waterlily_engine_log(INFO,
                                  "Waterlily version " WATERLILY_VERSION ".");
             return false;
         }
-        else if (strcmp(currentArg, "license"))
+        else if (strcmp(currentArg, "license") == 0)
         {
             waterlily_engine_log(
                 INFO, "Copyright (c) 2025 - Israfil Argos\nThis software is "
@@ -48,6 +48,8 @@ bool waterlily_engine_digest(int argc, const char *const *const argv,
                       "find it at <https://www.gnu.org/licenses/gpl-3.0.txt>");
             return false;
         }
+        else if (strcmp(currentArg, "fps") == 0)
+            arguments->flags.displayFPS = true;
     }
 
     waterlily_engine_log(SUCCESS, "Parsed all provided arguments.");
