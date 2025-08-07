@@ -1,7 +1,6 @@
 #include <Waterlily.h>
 
-void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_surface_t *surface,
-                                       waterlily_vulkan_pipeline_info_t *info)
+void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_pipeline_info_t *info)
 {
     info->input.sType =
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -9,18 +8,6 @@ void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_surface_t *surface,
     info->assembly.sType =
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     info->assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-    info->viewportData.width = (float)surface->extent.width;
-    info->viewportData.height = (float)surface->extent.height;
-    info->viewportData.maxDepth = 1.0f;
-
-    info->scissorData.extent = surface->extent;
-
-    info->viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    info->viewport.viewportCount = 1;
-    info->viewport.pViewports = &info->viewportData;
-    info->viewport.scissorCount = 1;
-    info->viewport.pScissors = &info->scissorData;
 
     info->rasterizer.sType =
         VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -40,5 +27,12 @@ void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_surface_t *surface,
         VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     info->colorBlend.attachmentCount = 1;
     info->colorBlend.pAttachments = &info->colorBlendAttachment;
+
+    info->dynamicState[0] = VK_DYNAMIC_STATE_VIEWPORT;
+    info->dynamicState[1] = VK_DYNAMIC_STATE_SCISSOR;
+
+    info->dynamic.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    info->dynamic.dynamicStateCount = 2;
+    info->dynamic.pDynamicStates = info->dynamicState;
 }
 

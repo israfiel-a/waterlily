@@ -344,6 +344,7 @@ static void topConfigure(void *, struct xdg_toplevel *, int32_t w, int32_t h,
 
     pWidth = (uint32_t)(w * pScale);
     pHeight = (uint32_t)(h * pScale);
+    waterlily_window_resized(WATERLILY_RESIZE_YES);
     waterlily_engine_log(INFO, "Window dimensions adjusted: %dx%d.", pWidth,
                          pHeight);
 

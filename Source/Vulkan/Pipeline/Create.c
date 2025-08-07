@@ -9,12 +9,17 @@ bool waterlily_vulkan_createPipeline(
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = stageCount;
     pipelineInfo.pStages = stages;
+    pipelineInfo.pViewportState = &(VkPipelineViewportStateCreateInfo){
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .viewportCount = 1,
+        .scissorCount = 1,
+    };
     pipelineInfo.pVertexInputState = &info->input;
     pipelineInfo.pInputAssemblyState = &info->assembly;
-    pipelineInfo.pViewportState = &info->viewport;
     pipelineInfo.pRasterizationState = &info->rasterizer;
     pipelineInfo.pMultisampleState = &info->multisampling;
     pipelineInfo.pColorBlendState = &info->colorBlend;
+    pipelineInfo.pDynamicState = &info->dynamic;
     pipelineInfo.layout = pipeline->layout;
     pipelineInfo.renderPass = pipeline->renderpass;
 

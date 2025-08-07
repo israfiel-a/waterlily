@@ -40,6 +40,13 @@ typedef enum waterlily_close_type : uint8_t
     WATERLILY_CLOSE_OFF
 } waterlily_close_type_t;
 
+typedef enum waterlily_resize_type : uint8_t
+{
+    WATERLILY_RESIZE_GET,
+    WATERLILY_RESIZE_YES,
+    WATERLILY_RESIZE_NO
+} waterlily_resize_type_t;
+
 typedef struct waterlily_vulkan_queue_indices
 {
     uint32_t graphics;
@@ -65,13 +72,12 @@ typedef struct waterlily_vulkan_pipeline_info
 {
     VkPipelineVertexInputStateCreateInfo input;
     VkPipelineInputAssemblyStateCreateInfo assembly;
-    VkViewport viewportData;
-    VkRect2D scissorData;
-    VkPipelineViewportStateCreateInfo viewport;
     VkPipelineRasterizationStateCreateInfo rasterizer;
     VkPipelineMultisampleStateCreateInfo multisampling;
     VkPipelineColorBlendAttachmentState colorBlendAttachment;
     VkPipelineColorBlendStateCreateInfo colorBlend;
+    VkDynamicState dynamicState[2];
+    VkPipelineDynamicStateCreateInfo dynamic;
 } waterlily_vulkan_pipeline_info_t;
 
 typedef struct waterlily_vulkan_graphics_pipeline
@@ -102,6 +108,7 @@ void waterlily_window_destroy(void);
 void waterlily_window_measure(uint32_t *width, uint32_t *height);
 void waterlily_window_getData(void **data);
 bool waterlily_window_process(void);
+bool waterlily_window_resized(waterlily_resize_type_t type);
 static inline bool waterlily_window_close(waterlily_close_type_t type)
 {
     static bool close = false;
@@ -177,8 +184,7 @@ bool waterlily_vulkan_recreateSwapchain(
 bool waterlily_vulkan_setupShadersPipeline(
     VkDevice device, const char *const *const stages, size_t count,
     VkPipelineShaderStageCreateInfo *storage);
-void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_surface_t *surface,
-                                       waterlily_vulkan_pipeline_info_t *info);
+void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_pipeline_info_t *info);
 bool waterlily_vulkan_createLayoutPipeline(
     VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline);
 bool waterlily_vulkan_createRenderpassPipeline(

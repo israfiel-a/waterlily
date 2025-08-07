@@ -17,11 +17,11 @@ bool waterlily_vulkan_render(VkDevice device,
     VkResult result =
         vkAcquireNextImageKHR(device, *swapchain, UINT64_MAX,
                               imageAvailableSemaphore, nullptr, &imageIndex);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
         return waterlily_vulkan_recreateSwapchain(
             device, surface, indices, pipeline, imageCount, framebuffers,
             images, swapchain);
-    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    else if (result != VK_SUCCESS)
     {
         waterlily_engine_log(
             ERROR, "Failed to acquire swapchain image, code %d.", result);
