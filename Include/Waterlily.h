@@ -125,10 +125,7 @@ bool waterlily_vulkan_render(VkDevice device,
                              VkSemaphore renderFinishedSemaphore,
                              VkSwapchainKHR *swapchain, uint32_t *imageCount,
                              VkFramebuffer *framebuffers, VkImageView *images);
-static inline bool waterlily_vulkan_sync(VkDevice device)
-{
-    return vkDeviceWaitIdle(device) != VK_SUCCESS;
-}
+bool waterlily_vulkan_sync(VkDevice device);
 
 bool waterlily_vulkan_getPhysicalGPU(VkInstance instance,
                                      VkPhysicalDevice *device,

@@ -60,6 +60,7 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Create.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Render.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Sync.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/BeginRenderpass.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/CreateBuffers.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/CreateSyncs.c"
