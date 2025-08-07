@@ -26,7 +26,7 @@ bool waterlily_vulkan_setupShadersPipeline(
         snprintf(outputPath, fileLength, "Assets/Shaders/Compiled/%s", file);
         argv[5] = outputPath;
         argv[14] = fullPath;
-        if (!waterliliy_files_execute(argv))
+        if (!waterlily_files_execute(argv))
             return false;
 
         FILE *output;

@@ -3,7 +3,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-bool waterliliy_files_execute(char *const *args)
+bool waterlily_files_execute(char *const *args)
 {
     int pid = fork();
     if (pid < 0)
