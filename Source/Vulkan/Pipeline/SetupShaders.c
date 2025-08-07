@@ -6,7 +6,7 @@ bool waterlily_vulkan_setupShadersPipeline(
     VkPipelineShaderStageCreateInfo *storage)
 {
     char *argv[] = {
-        "glslang",   "-e",      "main",
+        "/usr/bin/glslang",   "-e",      "main",
 #if BUILD_TYPE == 0
         "-g",
 #else
