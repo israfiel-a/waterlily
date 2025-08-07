@@ -59,8 +59,11 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Files/Read.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Create.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Destroy.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Render.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/BeginRenderpass.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/CreateBuffers.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/CreateSyncs.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/RecordBuffer.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/GetPhysical.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/CreateLogical.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/Destroy.c"
@@ -75,7 +78,9 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetMode.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Create.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/CreateFramebuffers.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Partition.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Recreate.c"
 )
 
 if(WATERLILY_WAYLAND)
