@@ -1,9 +1,9 @@
 #include <Waterlily.h>
 
-bool waterlily_files_open(const char *const path, FILE *file)
+bool waterlily_files_open(const char *const path, FILE **file)
 {
-    file = fopen(path, "rb");
-    if (file == nullptr)
+    *file = fopen(path, "rb");
+    if (*file == nullptr)
     {
         waterlily_engine_log(ERROR, "Failed to open file '%s'.", path);
         return false;

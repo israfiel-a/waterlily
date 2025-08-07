@@ -146,7 +146,7 @@ bool waterlily_vulkan_partitionSwapchain(VkDevice device,
                                          VkImageView *images);
 
 bool waterlily_vulkan_setupShadersPipeline(
-    const char *const *const stages, size_t count,
+    VkDevice device, const char *const *const stages, size_t count,
     VkPipelineShaderStageCreateInfo *storage);
 void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_surface_t *surface,
                                        waterlily_vulkan_pipeline_info_t *info);
@@ -160,10 +160,11 @@ bool waterlily_vulkan_createPipeline(
     VkPipelineShaderStageCreateInfo *stages, size_t stageCount,
     waterlily_vulkan_pipeline_info_t *info);
 
-bool waterlily_files_open(const char *const path, FILE *file);
+bool waterlily_files_open(const char *const path, FILE **file);
 static inline void waterlily_files_close(FILE *file) { fclose(file); }
 bool waterlily_files_measure(FILE *file, size_t *length);
 bool waterlily_files_read(FILE *file, size_t count, uint8_t *buffer);
+bool waterliliy_files_execute(char *const *args);
 
 #endif // WATERLILY_MAIN_H
 

@@ -16,12 +16,11 @@ void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_surface_t *surface,
 
     info->scissorData.extent = surface->extent;
 
-    VkPipelineViewportStateCreateInfo viewportState = {0};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.pViewports = &info->viewportData;
-    viewportState.scissorCount = 1;
-    viewportState.pScissors = &info->scissorData;
+    info->viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    info->viewport.viewportCount = 1;
+    info->viewport.pViewports = &info->viewportData;
+    info->viewport.scissorCount = 1;
+    info->viewport.pScissors = &info->scissorData;
 
     info->rasterizer.sType =
         VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
