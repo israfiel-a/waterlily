@@ -29,7 +29,7 @@ bool waterlily_vulkan_createPipeline(
     waterlily_engine_log(SUCCESS, "Created graphics pipeline.");
 
     for (size_t i = 0; i < stageCount; ++i)
-        vkDestroyShaderModule(device, stages[1].module, nullptr);
+        vkDestroyShaderModule(device, stages[i].module, nullptr);
     return true;
 }
 

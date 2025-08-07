@@ -12,7 +12,7 @@ bool waterlily_files_read(FILE *file, size_t count, uint8_t *buffer)
         return false;
     }
     waterlily_engine_log(SUCCESS, "Read %zu bytes from file at descriptor %d.",
-                         fileno(file));
+                         count, fileno(file));
     return true;
 }
 
