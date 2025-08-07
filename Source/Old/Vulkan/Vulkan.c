@@ -5,66 +5,9 @@
 
 static uint32_t currentFrame = 0;
 
-static VkFramebuffer *pSwapchainFramebuffers = nullptr;
-static VkCommandPool pCommandPool;
-static VkCommandBuffer pCommandBuffers[waterlily_CONCURRENT_FRAMES];
 static VkSemaphore pImageAvailableSemaphores[waterlily_CONCURRENT_FRAMES];
 static VkSemaphore pRenderFinishedSemaphores[waterlily_CONCURRENT_FRAMES];
 static VkFence pFences[waterlily_CONCURRENT_FRAMES];
-
-bool createCommandBuffers(void)
-{
-    VkCommandPoolCreateInfo poolInfo = {0};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = pGraphicsIndex;
-
-    if (vkCreateCommandPool(pLogicalDevice, &poolInfo, nullptr,
-                            &pCommandPool) != VK_SUCCESS)
-    {
-        fprintf(stderr, "Failed to create command pool.\n");
-        return false;
-    }
-
-    VkCommandBufferAllocateInfo allocInfo = {0};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = pCommandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = waterlily_CONCURRENT_FRAMES;
-
-    if (vkAllocateCommandBuffers(pLogicalDevice, &allocInfo, pCommandBuffers) !=
-        VK_SUCCESS)
-    {
-        fprintf(stderr, "Failed to create command buffer.\n");
-        return false;
-    }
-
-    return true;
-}
-
-bool createSyncObjects(void)
-{
-    VkSemaphoreCreateInfo semaphoreInfo = {0};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    VkFenceCreateInfo fenceInfo = {0};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-    for (size_t i = 0; i < waterlily_CONCURRENT_FRAMES; i++)
-    {
-        if (vkCreateSemaphore(pLogicalDevice, &semaphoreInfo, nullptr,
-                              &pImageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(pLogicalDevice, &semaphoreInfo, nullptr,
-                              &pRenderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(pLogicalDevice, &fenceInfo, nullptr, &pFences[i]) !=
-                VK_SUCCESS)
-        {
-            fprintf(stderr, "Failed to create sync object.\n");
-            return false;
-        }
-    }
-    return true;
-}
 
 bool recordCommandBuffer(VkCommandBuffer commandBuffer,
                          const VkExtent2D *extent, uint32_t imageIndex)
@@ -88,12 +31,6 @@ bool recordCommandBuffer(VkCommandBuffer commandBuffer,
         fprintf(stderr, "Failed to end command buffer.\n");
         return false;
     }
-
-    return true;
-}
-
-    if (!createCommandBuffers()) return false;
-    if (!createSyncObjects()) return false;
 
     return true;
 }

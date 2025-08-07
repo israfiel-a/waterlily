@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <vulkan/vulkan.h>
 
+#define WATERLILY_CONCURRENT_FRAMES 2
+
 typedef struct waterlily_arguments
 {
     struct
@@ -163,6 +165,13 @@ bool waterlily_vulkan_createPipeline(
     VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline,
     VkPipelineShaderStageCreateInfo *stages, size_t stageCount,
     waterlily_vulkan_pipeline_info_t *info);
+
+bool waterlily_vulkan_createBuffersCommand(
+    VkDevice device, waterlily_vulkan_queue_indices_t *indices,
+    VkCommandPool *commandPool, VkCommandBuffer *buffers);
+bool waterlily_vulkan_createSyncsCommand(VkDevice device, VkFence *fences,
+                                         VkSemaphore *imageAvailableSemphores,
+                                         VkSemaphore *renderFinishedSemaphores);
 
 bool waterlily_files_open(const char *const path, FILE **file);
 static inline void waterlily_files_close(FILE *file) { fclose(file); }
