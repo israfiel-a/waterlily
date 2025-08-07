@@ -13,6 +13,7 @@ bool waterliliy_files_execute(char *const *args)
 
     if (pid == 0)
     {
+        if(args[0] == nullptr) return false;
         int status = execve(args[0], args, nullptr);
         waterlily_engine_log(
             ERROR, "Failed to replace current process, code %d.", status);
