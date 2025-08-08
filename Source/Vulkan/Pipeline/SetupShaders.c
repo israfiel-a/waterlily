@@ -2,19 +2,30 @@
 #include <string.h>
 
 bool waterlily_vulkan_setupShadersPipeline(
-    VkDevice device, const char *const *const stages, size_t count,
+    waterlily_context_t *context, const char *const *const stages, size_t count,
     VkPipelineShaderStageCreateInfo *storage)
 {
     char *argv[] = {
-        "/usr/bin/glslang",   "-e",      "main",
+        "/usr/bin/glslang",
+        "-e",
+        "main",
 #if BUILD_TYPE == 0
         "-g",
 #else
         "-g0",
 #endif
-        "-o",        nullptr,   "-t",          "--glsl-version",
-        "460",       "--quiet", "--spirv-val", "--target-env",
-        "vulkan1.3", "--lto",   nullptr,       nullptr,
+        "-o",
+        nullptr,
+        "-t",
+        "--glsl-version",
+        "460",
+        "--quiet",
+        "--spirv-val",
+        "--target-env",
+        "vulkan1.3",
+        "--lto",
+        nullptr,
+        nullptr,
     };
 
     for (size_t i = 0; i < count; ++i)
@@ -47,8 +58,8 @@ bool waterlily_vulkan_setupShadersPipeline(
         moduleCreateInfo.pCode = (uint32_t *)fileContents;
 
         VkShaderModule module;
-        VkResult result =
-            vkCreateShaderModule(device, &moduleCreateInfo, nullptr, &module);
+        VkResult result = vkCreateShaderModule(
+            context->gpu.logical, &moduleCreateInfo, nullptr, &module);
         if (result != VK_SUCCESS)
         {
             waterlily_engine_log(

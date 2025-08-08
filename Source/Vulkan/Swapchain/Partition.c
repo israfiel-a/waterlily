@@ -1,14 +1,12 @@
 #include <Waterlily.h>
+#include <stdlib.h>
 
-bool waterlily_vulkan_partitionSwapchain(VkDevice device,
-                                         waterlily_vulkan_surface_t *surface,
-                                         VkSwapchainKHR swapchain,
-                                         uint32_t imageCount,
-                                         VkImageView *images)
+bool waterlily_vulkan_partitionSwapchain(waterlily_context_t *context)
 {
-    VkImage rawImages[imageCount];
+    VkImage rawImages[context->swapchain.imageCount];
     VkResult code =
-        vkGetSwapchainImagesKHR(device, swapchain, &imageCount, rawImages);
+        vkGetSwapchainImagesKHR(context->gpu.logical, context->swapchain.handle,
+                                &context->swapchain.imageCount, rawImages);
     if (code != VK_SUCCESS)
     {
         waterlily_engine_log(ERROR, "Failed to get swapchain images, code %d.",
@@ -19,16 +17,19 @@ bool waterlily_vulkan_partitionSwapchain(VkDevice device,
     VkImageViewCreateInfo imageCreateInfo = {0};
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     imageCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imageCreateInfo.format = surface->format.format;
+    imageCreateInfo.format = context->window.format.format;
     imageCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     imageCreateInfo.subresourceRange.levelCount = 1;
     imageCreateInfo.subresourceRange.layerCount = 1;
 
-    for (size_t i = 0; i < imageCount; i++)
+    context->swapchain.images =
+        malloc(sizeof(VkImageView) * context->swapchain.imageCount);
+    for (size_t i = 0; i < context->swapchain.imageCount; i++)
     {
         imageCreateInfo.image = rawImages[i];
         VkResult result =
-            vkCreateImageView(device, &imageCreateInfo, nullptr, &images[i]);
+            vkCreateImageView(context->gpu.logical, &imageCreateInfo, nullptr,
+                              &context->swapchain.images[i]);
         if (result != VK_SUCCESS)
         {
             waterlily_engine_log(

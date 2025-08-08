@@ -1,14 +1,12 @@
 #include <Waterlily.h>
 #include <string.h>
 
-static uint32_t scoreDevice(VkPhysicalDevice device,
-                            waterlily_vulkan_queue_indices_t *indices,
-                            const VkSurfaceKHR surface)
+static uint32_t scoreDevice(waterlily_context_t *context)
 {
     VkPhysicalDeviceProperties properties;
     VkPhysicalDeviceFeatures features;
-    vkGetPhysicalDeviceProperties(device, &properties);
-    vkGetPhysicalDeviceFeatures(device, &features);
+    vkGetPhysicalDeviceProperties(context->gpu.physical, &properties);
+    vkGetPhysicalDeviceFeatures(context->gpu.physical, &features);
 
     uint32_t score = 0;
     switch (properties.deviceType)
@@ -28,11 +26,11 @@ static uint32_t scoreDevice(VkPhysicalDevice device,
     }
 
     uint32_t extensionCount = 0;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
-                                         nullptr);
+    vkEnumerateDeviceExtensionProperties(context->gpu.physical, nullptr,
+                                         &extensionCount, nullptr);
     VkExtensionProperties extensions[extensionCount];
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
-                                         extensions);
+    vkEnumerateDeviceExtensionProperties(context->gpu.physical, nullptr,
+                                         &extensionCount, extensions);
 
     size_t requiredCount =
         sizeof(waterlily_vulkan_gDeviceExtensions) / sizeof(char *);
@@ -65,11 +63,11 @@ static uint32_t scoreDevice(VkPhysicalDevice device,
     }
 
     uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
-                                             nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(context->gpu.physical,
+                                             &queueFamilyCount, nullptr);
     VkQueueFamilyProperties queueFamilies[queueFamilyCount];
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
-                                             queueFamilies);
+    vkGetPhysicalDeviceQueueFamilyProperties(context->gpu.physical,
+                                             &queueFamilyCount, queueFamilies);
 
     bool foundGraphicsQueue = false, foundPresentQueue = false;
     for (size_t i = 0; i < queueFamilyCount; i++)
@@ -80,16 +78,16 @@ static uint32_t scoreDevice(VkPhysicalDevice device,
         VkQueueFamilyProperties family = queueFamilies[i];
         if (family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
-            indices->graphics = i;
+            context->queues.graphics.index = i;
             foundGraphicsQueue = true;
         }
 
         VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface,
-                                             &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(
+            context->gpu.physical, i, context->window.surface, &presentSupport);
         if (presentSupport)
         {
-            indices->present = i;
+            context->queues.present.index = i;
             foundPresentQueue = true;
         }
     }
@@ -102,34 +100,27 @@ static uint32_t scoreDevice(VkPhysicalDevice device,
     return score;
 }
 
-bool waterlily_vulkan_getPhysicalGPU(VkInstance instance,
-                                     VkPhysicalDevice *device,
-                                     waterlily_vulkan_queue_indices_t *indices,
-                                     const VkSurfaceKHR surface)
+bool waterlily_vulkan_getPhysicalGPU(waterlily_context_t *context)
 {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(context->vulkan, &deviceCount, nullptr);
     VkPhysicalDevice devices[deviceCount];
-    vkEnumeratePhysicalDevices(instance, &deviceCount, devices);
+    vkEnumeratePhysicalDevices(context->vulkan, &deviceCount, devices);
 
-    VkPhysicalDevice currentChosen = nullptr;
     uint32_t bestScore = 0;
     for (size_t i = 0; i < deviceCount; i++)
     {
-        uint32_t score = scoreDevice(devices[i], indices, surface);
+        context->gpu.physical = devices[i];
+        uint32_t score = scoreDevice(context);
         if (score > bestScore)
-        {
-            currentChosen = devices[i];
             bestScore = score;
-        }
     }
 
-    if (currentChosen == nullptr)
+    if (bestScore == 0)
     {
         waterlily_engine_log(ERROR, "Failed to find suitable Vulkan device.");
         return false;
     }
-    *device = currentChosen;
     waterlily_engine_log(SUCCESS, "Found suitable Vulkan device.");
     return true;
 }

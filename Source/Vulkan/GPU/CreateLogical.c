@@ -1,19 +1,16 @@
 #include <Waterlily.h>
 
-bool waterlily_vulkan_createLogicalGPU(
-    const VkPhysicalDevice physical, VkDevice *device,
-    waterlily_vulkan_queues_t *queues,
-    const waterlily_vulkan_queue_indices_t *indices)
+bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context)
 {
     float priority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfos[2] = {{0}, {0}};
     queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfos[0].queueFamilyIndex = indices->graphics;
+    queueCreateInfos[0].queueFamilyIndex = context->queues.graphics.index;
     queueCreateInfos[0].queueCount = 1;
     queueCreateInfos[0].pQueuePriorities = &priority;
 
     queueCreateInfos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfos[1].queueFamilyIndex = indices->present;
+    queueCreateInfos[1].queueFamilyIndex = context->queues.present.index;
     queueCreateInfos[1].queueCount = 1;
     queueCreateInfos[1].pQueuePriorities = &priority;
 
@@ -26,7 +23,7 @@ bool waterlily_vulkan_createLogicalGPU(
     logicalDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     logicalDeviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
     logicalDeviceCreateInfo.queueCreateInfoCount =
-        indices->graphics == indices->present ? 1 : 2;
+        context->queues.graphics.index == context->queues.present.index ? 1 : 2;
     logicalDeviceCreateInfo.pEnabledFeatures = &usedFeatures;
 
     logicalDeviceCreateInfo.enabledExtensionCount =
@@ -35,7 +32,8 @@ bool waterlily_vulkan_createLogicalGPU(
         waterlily_vulkan_gDeviceExtensions;
 
     VkResult code =
-        vkCreateDevice(physical, &logicalDeviceCreateInfo, nullptr, device);
+        vkCreateDevice(context->gpu.physical, &logicalDeviceCreateInfo, nullptr,
+                       &context->gpu.logical);
     if (code != VK_SUCCESS)
     {
         waterlily_engine_log(
@@ -44,8 +42,10 @@ bool waterlily_vulkan_createLogicalGPU(
     }
     waterlily_engine_log(SUCCESS, "Created logical device.");
 
-    vkGetDeviceQueue(*device, indices->graphics, 0, &queues->graphics);
-    vkGetDeviceQueue(*device, indices->present, 0, &queues->present);
+    vkGetDeviceQueue(context->gpu.logical, context->queues.graphics.index, 0,
+                     &context->queues.graphics.handle);
+    vkGetDeviceQueue(context->gpu.logical, context->queues.present.index, 0,
+                     &context->queues.present.handle);
     waterlily_engine_log(INFO, "Created device data queues.");
     return true;
 }

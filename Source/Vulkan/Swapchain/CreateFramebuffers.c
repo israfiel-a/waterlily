@@ -1,23 +1,25 @@
 #include <Waterlily.h>
+#include <stdlib.h>
 
-bool waterlily_vulkan_createFramebuffersSwapchain(
-    VkDevice device, waterlily_vulkan_surface_t *surface,
-    VkRenderPass renderpass, uint32_t count, VkImageView *images,
-    VkFramebuffer *framebuffers)
+bool waterlily_vulkan_createFramebuffersSwapchain(waterlily_context_t *context)
 {
     VkFramebufferCreateInfo framebufferInfo = {0};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = renderpass;
+    framebufferInfo.renderPass = context->pipeline.renderpass;
     framebufferInfo.attachmentCount = 1;
-    framebufferInfo.width = surface->extent.width;
-    framebufferInfo.height = surface->extent.height;
+    framebufferInfo.width = context->window.extent.width;
+    framebufferInfo.height = context->window.extent.height;
     framebufferInfo.layers = 1;
 
-    for (size_t i = 0; i < count; ++i)
+    context->swapchain.framebuffers =
+        malloc(sizeof(VkFramebuffer) * context->swapchain.imageCount);
+
+    for (size_t i = 0; i < context->swapchain.imageCount; ++i)
     {
-        framebufferInfo.pAttachments = &images[i];
-        VkResult result = vkCreateFramebuffer(device, &framebufferInfo, nullptr,
-                                              &framebuffers[i]);
+        framebufferInfo.pAttachments = &context->swapchain.images[i];
+        VkResult result =
+            vkCreateFramebuffer(context->gpu.logical, &framebufferInfo, nullptr,
+                                &context->swapchain.framebuffers[i]);
         if (result != VK_SUCCESS)
         {
             waterlily_engine_log(

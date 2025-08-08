@@ -1,11 +1,10 @@
 #include <Waterlily.h>
 
-bool waterlily_vulkan_getFormatSurface(VkPhysicalDevice device,
-                                       waterlily_vulkan_surface_t *surface)
+bool waterlily_vulkan_getFormatSurface(waterlily_context_t *context)
 {
     uint32_t formatCount = 0;
     VkResult result = vkGetPhysicalDeviceSurfaceFormatsKHR(
-        device, surface->surface, &formatCount, nullptr);
+        context->gpu.physical, context->window.surface, &formatCount, nullptr);
     if (result != VK_SUCCESS)
     {
         waterlily_engine_log(
@@ -14,8 +13,8 @@ bool waterlily_vulkan_getFormatSurface(VkPhysicalDevice device,
     }
 
     VkSurfaceFormatKHR formats[formatCount];
-    result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface->surface,
-                                                  &formatCount, formats);
+    result = vkGetPhysicalDeviceSurfaceFormatsKHR(
+        context->gpu.physical, context->window.surface, &formatCount, formats);
     if (result != VK_SUCCESS)
     {
         waterlily_engine_log(
@@ -31,7 +30,7 @@ bool waterlily_vulkan_getFormatSurface(VkPhysicalDevice device,
         if (currentFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
             currentFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
-            surface->format = currentFormat;
+            context->window.format = currentFormat;
             waterlily_engine_log(SUCCESS, "Found optimal surface format.");
             return true;
         }
@@ -40,7 +39,7 @@ bool waterlily_vulkan_getFormatSurface(VkPhysicalDevice device,
     waterlily_engine_log(
         ERROR, "Could not find the optimal colorspace. Falling back on %dx%d.",
         formats[0].format, formats[0].colorSpace);
-    surface->format = formats[0];
+    context->window.format = formats[0];
     return true;
 }
 

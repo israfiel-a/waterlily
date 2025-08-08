@@ -2,11 +2,11 @@
 #include <string.h>
 
 bool waterlily_engine_digest(int argc, const char *const *const argv,
-                             waterlily_arguments_t *arguments)
+                             waterlily_context_t *context)
 {
     const char *const rawExecutable = argv[0];
-    arguments->requiredDirectory = (char *)rawExecutable;
-    arguments->requiredDirectoryLength =
+    context->arguments.requiredDirectory = (char *)rawExecutable;
+    context->arguments.requiredDirectoryLength =
         strrchr(rawExecutable, '/') - rawExecutable;
 
     for (size_t i = 1; i < (size_t)argc; ++i)
@@ -49,7 +49,7 @@ bool waterlily_engine_digest(int argc, const char *const *const argv,
             return false;
         }
         else if (strcmp(currentArg, "fps") == 0)
-            arguments->flags.displayFPS = true;
+            context->arguments.flags.displayFPS = true;
     }
 
     waterlily_engine_log(SUCCESS, "Parsed all provided arguments.");

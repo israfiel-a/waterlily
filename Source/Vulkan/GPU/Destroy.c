@@ -1,8 +1,8 @@
 #include <Waterlily.h>
 
-void waterlily_vulkan_destroyGPU(VkDevice logical)
+void waterlily_vulkan_destroyGPU(waterlily_context_t *context)
 {
-    vkDeviceWaitIdle(logical);
-    vkDestroyDevice(logical, nullptr); 
+    waterlily_vulkan_sync(context);
+    vkDestroyDevice(context->gpu.logical, nullptr);
 }
 

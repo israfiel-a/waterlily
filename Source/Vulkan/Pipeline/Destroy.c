@@ -1,10 +1,11 @@
 #include <Waterlily.h>
 
-void waterlily_vulkan_destroyPipeline(
-    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline)
+void waterlily_vulkan_destroyPipeline(waterlily_context_t *context)
 {
-    vkDestroyRenderPass(device, pipeline->renderpass, nullptr);
-    vkDestroyPipelineLayout(device, pipeline->layout, nullptr);
-    vkDestroyPipeline(device, pipeline->pipeline, nullptr);
+    vkDestroyRenderPass(context->gpu.logical, context->pipeline.renderpass,
+                        nullptr);
+    vkDestroyPipelineLayout(context->gpu.logical, context->pipeline.layout,
+                            nullptr);
+    vkDestroyPipeline(context->gpu.logical, context->pipeline.handle, nullptr);
 }
 

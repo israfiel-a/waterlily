@@ -1,6 +1,8 @@
 #include <Waterlily.h>
 
-void waterlily_vulkan_destroyBuffers(VkDevice device, VkCommandPool pool)
+void waterlily_vulkan_destroyBuffers(waterlily_context_t *context)
 {
-    vkDestroyCommandPool(device, pool, nullptr);
+    vkDestroyCommandPool(context->gpu.logical, context->commandBuffers.pool,
+                         nullptr);
 }
+

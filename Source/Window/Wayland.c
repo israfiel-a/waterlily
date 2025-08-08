@@ -2,7 +2,9 @@
  * @brief This file provides the complete Wayland implementation of the
  * waterlily interface. This only depends upon the default C-standard @c
  * stdint.h, and @c string.h files, and the Wayland client header @c
- * wayland-client.h.
+ * wayland-client.h. I hate this interface. I think it's awful, and it
+ * introduces data that can only be properly handled as private, global
+ * variables. Yuck.
  * @since v0.0.1
  *
  * @note This file contains material (the contents of the XDG-shell protocol)
@@ -20,18 +22,16 @@
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
- * details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <https://www.gnu.org/licenses/>.
+ * version. This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details. You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include <Waterlily.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wayland-client.h>
 
@@ -139,109 +139,9 @@ static const struct wl_interface pXDGShellInterface = {
 };
 
 /**
- * @brief The Wayland display server reference we've recieved. This is simply a
- * reference to the display server; the only thing it's useful for is syncing
- * processing and accessing the registry. All other information is accessed via
- * the registry.
- * @since v0.0.1
- */
-static struct wl_display *pDisplay = nullptr;
-
-/**
- * @brief The true core object for the Wayland protocol. We access all other
- * interfaces, like the compositor, monitors, and input devices through this
- * object.
- * @since v0.0.1
- */
-static struct wl_registry *pRegistry = nullptr;
-
-/**
- * @brief The compositor reference object. We go through this compositor object
- * in order to grab @c wl_surface objects, which are smaller pixel buffers that
- * can be written to to paint contents onto the screen.
- * @since v0.0.1
- */
-static struct wl_compositor *pCompositor = nullptr;
-
-/**
- * @brief The @c wl_surface object, basically just a buffer of pixels that will
- * be written to in order to paint content onto the screen.
- * @since v0.0.1
- */
-static struct wl_surface *pSurface = nullptr;
-
-/**
- * @brief The pixel output device, or monitor. This is the object we pull
- * dimensions from in order to size the window.
- * @since v0.0.1
- */
-static struct wl_output *pOutput = nullptr;
-
-/**
- * @brief A sort of second-level registry specifically for the XDG-shell
- * extension. This provides the ability to create toplevel interfaces and do
- * other manipulation tasks otherwise nigh impossible with default Wayland.
- * @since v0.0.1
- */
-static struct xdg_wm_base *pShell = nullptr;
-
-/**
- * @brief The shell surface, a relatively shallow wrapper around the default @c
- * wl_surface object, including configuration and ping events.
- * @since v0.0.1
- */
-static struct xdg_surface *pShellSurface = nullptr;
-
-/**
- * @brief The toplevel XDG "window". This provides a much more complete wrapper
- * over @c wl_surface, including fullscreen capabilities, which this project
- * requires.
- * @since v0.0.1
- */
-static struct xdg_toplevel *pToplevel = nullptr;
-
-/**
- * @brief The monitor scale of screen coordinates to pixels. This is nearly
- * always one, unless on a display like the Apple Retina.
- * @since v0.0.1
- */
-static int32_t pScale = 0;
-
-/**
- * @brief The width of the window in @b pixels. This value is recieved from the
- * display server and multiplied by @ref pScale to grab the actual pixel
- * value.
- * @since v0.0.1
- */
-static uint32_t pWidth = 0;
-
-/**
- * @brief The height of the window in @b pixels. This value is recieved from the
- * display server and multiplied by @ref pScale to grab the actual pixel
- * value.
- * @since v0.0.1
- */
-static uint32_t pHeight = 0;
-
-/**
- * @brief A count of the interfaces we've found reported by the registry. This
- * must match @ref pRequiredInterfaces, or the process will throw a
- * tantrum.
- * @since v0.0.1
- */
-static uint8_t pFoundInterfaces = 0;
-
-/**
- * @brief A count of the interfaces that the registry @b must report and connect
- * to in order for the process to complete its work successfully.
- * @since v0.0.1
- */
-static const uint8_t pRequiredInterfaces = 3;
-
-/**
  * @copydoc xdg_wm_base_listener::ping
  */
-static void ping(void *, struct xdg_wm_base *b, uint32_t s)
+static void ping(void *, void *b, uint32_t s)
 {
     // xdg_wm_base_pong
     (void)wl_proxy_marshal_flags((struct wl_proxy *)b, 3, nullptr,
@@ -256,7 +156,7 @@ static void ping(void *, struct xdg_wm_base *b, uint32_t s)
  * a zombie.
  * @since v0.0.1
  */
-static struct xdg_wm_base_listener
+struct xdg_wm_base_listener
 {
     /**
      * @brief The ping event asks the client if it’s still alive. Pass the
@@ -274,27 +174,19 @@ static struct xdg_wm_base_listener
      * @param[in] serial The serial code of the event. The client must respond
      * to the ping with this serial code in its pong.
      */
-    void (*ping)(void *data, struct xdg_wm_base *base, uint32_t serial);
-}
-/**
- * @brief The listener for the XDG window manager base object, which is
- * basically the "registry" for the XDG Shell protocol.
- * @since v0.0.1
- *
- * @copydoc xdg_wm_base_listener
- */
-pShellListener = {.ping = &ping};
+    void (*ping)(void *data, void *base, uint32_t serial);
+};
 
 /**
  * @copydoc xdg_surface_listener::configure
  */
-static void configure(void *, struct xdg_surface *t, uint32_t s)
+static void configure(void *d, void *t, uint32_t s)
 {
     // Acknowlege the configuration. (xdg_surface_ack_configure)
     (void)wl_proxy_marshal_flags((struct wl_proxy *)t, 4, nullptr,
                                  wl_proxy_get_version((struct wl_proxy *)t), 0,
                                  s);
-    wl_surface_commit(pSurface);
+    wl_surface_commit(d);
     waterlily_engine_log(SUCCESS, "Configure request completed.");
 }
 
@@ -303,7 +195,7 @@ static void configure(void *, struct xdg_surface *t, uint32_t s)
  * the @c wl_surface object.
  * @since v0.0.1
  */
-static const struct xdg_surface_listener
+struct xdg_surface_listener
 {
     /**
      * @brief The configure event marks the end of a configure sequence. A
@@ -323,30 +215,25 @@ static const struct xdg_surface_listener
      * @param[in] serial The serial ID of this event. This should be sent
      * alongside a configuration acknowledgement event.
      */
-    void (*configure)(void *data, struct xdg_surface *surface, uint32_t serial);
-}
-/**
- * @brief The listener for the XDG surface object. This handles exclusvely
- * surface-level configuration-end events sent by the server.
- * @since v0.0.1
- *
- * @copydoc xdg_surface_listener
- */
-pShellSurfaceListener = {&configure};
+    void (*configure)(void *data, void *surface, uint32_t serial);
+};
 
 /**
  * @copydoc xdg_toplevel_listener::topConfigure
  */
-static void topConfigure(void *, struct xdg_toplevel *, int32_t w, int32_t h,
+static void topConfigure(void *d, void *, int32_t w, int32_t h,
                          struct wl_array *s)
 {
     waterlily_engine_log(INFO, "Configure request recieved.");
 
-    pWidth = (uint32_t)(w * pScale);
-    pHeight = (uint32_t)(h * pScale);
-    waterlily_window_resized(WATERLILY_RESIZE_YES);
-    waterlily_engine_log(INFO, "Window dimensions adjusted: %dx%d.", pWidth,
-                         pHeight);
+    waterlily_context_t *context = d;
+    context->window.extent.width = (uint32_t)(w * context->window.scale);
+    context->window.extent.height = (uint32_t)(h * context->window.scale);
+    waterlily_vulkan_getExtentSurface(context);
+    context->window.resized = true;
+    waterlily_engine_log(INFO, "Window dimensions adjusted: %dx%d.",
+                         context->window.extent.width,
+                         context->window.extent.height);
 
     int32_t *i;
     wl_array_for_each(i, s)
@@ -373,20 +260,21 @@ static void topConfigure(void *, struct xdg_toplevel *, int32_t w, int32_t h,
 /**
  * @copydoc xdg_toplevel_listener::close
  */
-static void close(void *, struct xdg_toplevel *)
+static void close(void *d, void *)
 {
-    waterlily_window_close(WATERLILY_CLOSE_ON);
+    waterlily_context_t *context = d;
+    context->window.close = true;
 }
 
 /**
  * @copydoc xdg_toplevel_listener::bounds
  */
-static void bounds(void *, struct xdg_toplevel *, int32_t, int32_t) {}
+static void bounds(void *, void *, int32_t, int32_t) {}
 
 /**
  * @copydoc xdg_toplevel_listener::capabilities
  */
-static void capabilities(void *, struct xdg_toplevel *, struct wl_array *c)
+static void capabilities(void *, void *, struct wl_array *c)
 {
     int32_t *i;
     wl_array_for_each(i, c) if (*i == 3)
@@ -404,7 +292,7 @@ static void capabilities(void *, struct xdg_toplevel *, struct wl_array *c)
  * and more.
  * @since v0.0.1
  */
-static const struct xdg_toplevel_listener
+struct xdg_toplevel_listener
 {
     /**
      * @brief This configure event asks the client to resize its toplevel
@@ -428,9 +316,8 @@ static const struct xdg_toplevel_listener
      * @param[in] states An array of states to use for dealing with the provided
      * width and height or general window rendering.
      */
-    void (*topConfigure)(void *data, struct xdg_toplevel *toplevel,
-                         int32_t width, int32_t height,
-                         struct wl_array *states);
+    void (*topConfigure)(void *data, void *toplevel, int32_t width,
+                         int32_t height, struct wl_array *states);
 
     /**
      * @brief The close event is sent by the compositor when the user wants the
@@ -444,7 +331,7 @@ static const struct xdg_toplevel_listener
      * @param[in] data Any data asked to have been sent alongside the toplevel.
      * @param[in] toplevel The toplevel that wishes to be closed.
      */
-    void (*close)(void *data, struct xdg_toplevel *toplevel);
+    void (*close)(void *data, void *toplevel);
 
     /**
      * @brief The configure_bounds event may be sent prior to a configure event
@@ -463,8 +350,7 @@ static const struct xdg_toplevel_listener
      * @param[in] width The constrain width in screen coordinates.
      * @param[in] height The constrain height in screen coordinates.
      */
-    void (*bounds)(void *data, struct xdg_toplevel *toplevel, int32_t width,
-                   int32_t height);
+    void (*bounds)(void *data, void *toplevel, int32_t width, int32_t height);
 
     /**
      * @brief This event advertises the capabilities supported by the
@@ -484,17 +370,9 @@ static const struct xdg_toplevel_listener
      * @param[in] capabilities An array of the compositor's advertised
      * capabilities.
      */
-    void (*capabilities)(void *data, struct xdg_toplevel *toplevel,
+    void (*capabilities)(void *data, void *toplevel,
                          struct wl_array *capabilities);
-}
-/**
- * @brief The listener for the XDG toplevel surface object. This handles
- * configuration events and close requests.
- * @since v0.0.1
- *
- * @copydoc xdg_toplevel_listener
- */
-pToplevelListener = {&topConfigure, &close, &bounds, &capabilities};
+};
 
 /**
  * @copydoc wl_output_listener::geometry
@@ -520,10 +398,11 @@ static void finish(void *, struct wl_output *) {}
 /**
  * @copydoc wl_output_listener::scale
  */
-static void scale(void *, struct wl_output *, int32_t s)
+static void scale(void *d, struct wl_output *, int32_t s)
 {
-    pScale = s;
-    waterlily_engine_log(INFO, "Monitor scale %d.", pScale);
+    waterlily_context_t *context = d;
+    context->window.scale = s;
+    waterlily_engine_log(INFO, "Monitor scale %d.", context->window.scale);
 }
 
 /**
@@ -537,48 +416,41 @@ static void name(void *, struct wl_output *, const char *) {}
 static void description(void *, struct wl_output *, const char *) {}
 
 /**
- * @brief The listener for the Wayland output object. This is nearly always a
- * monitor, but is @b always a graphical output device of some kind. We don't
- * care what it is; we're gonna send all our data to it anyway!
- * @since v0.0.1
- */
-static const struct wl_output_listener pOutputListener = {
-    &geometry, &mode, &finish, &scale, &name, &description};
-
-/**
  * @copydoc wl_registry_listener::global
  */
-static void global(void *, struct wl_registry *registry, uint32_t name,
-                   const char *interface, uint32_t version)
+static void global(void *d, struct wl_registry *registry,
+                   uint32_t interfaceName, const char *interface,
+                   uint32_t version)
 {
-    if (__builtin_expect(pFoundInterfaces == pRequiredInterfaces, true))
-        return;
+    waterlily_context_t *context = d;
 
     if (strcmp(interface, wl_compositor_interface.name) == 0)
     {
-        pCompositor =
-            wl_registry_bind(registry, name, &wl_compositor_interface, version);
-        pFoundInterfaces++;
+        context->window.data[2] = wl_registry_bind(
+            registry, interfaceName, &wl_compositor_interface, version);
         waterlily_engine_log(SUCCESS, "Connected to compositor v%d.", version);
         return;
     }
     else if (strcmp(interface, "xdg_wm_base") == 0)
     {
-        pShell = wl_registry_bind(registry, name, &pXDGShellInterface, version);
+        context->window.data[3] = wl_registry_bind(
+            registry, interfaceName, &pXDGShellInterface, version);
+        struct xdg_wm_base_listener shellListener = {&ping};
         // xdg_wm_base_add_listener
-        (void)wl_proxy_add_listener((struct wl_proxy *)pShell,
-                                    (void (**)(void))&pShellListener, nullptr);
-        pFoundInterfaces++;
+        (void)wl_proxy_add_listener((struct wl_proxy *)context->window.data[3],
+                                    (void (**)(void))&shellListener, nullptr);
         waterlily_engine_log(SUCCESS, "Connected to window manager v%d.",
                              version);
         return;
     }
     else if (strcmp(interface, wl_output_interface.name) == 0)
     {
-        pOutput =
-            wl_registry_bind(registry, name, &wl_output_interface, version);
-        (void)wl_output_add_listener(pOutput, &pOutputListener, nullptr);
-        pFoundInterfaces++;
+        context->window.data[4] = wl_registry_bind(
+            registry, interfaceName, &wl_output_interface, version);
+        struct wl_output_listener outputListener = {
+            &geometry, &mode, &finish, &scale, &name, &description};
+        (void)wl_output_add_listener(context->window.data[4], &outputListener,
+                                     context);
         waterlily_engine_log(SUCCESS, "Connected to output device v%d.",
                              version);
         return;
@@ -592,106 +464,94 @@ static void global(void *, struct wl_registry *registry, uint32_t name,
  */
 static void globalRemove(void *, struct wl_registry *, uint32_t) {}
 
-/**
- * @brief The listener for the Wayland registry object, through which we handle
- * all base objects such as the XDG window manager base object or the output
- * object.
- * @since v0.0.1
- */
-static const struct wl_registry_listener pRegistryListener = {&global,
-                                                              &globalRemove};
-
-bool waterlily_window_create(const char *const title)
+bool waterlily_window_create(const char *const title,
+                             waterlily_context_t *context)
 {
-    pDisplay = wl_display_connect(nullptr);
-    if (__builtin_expect(pDisplay == nullptr, false))
+    context->window.data = malloc(sizeof(void *) * 8);
+    context->window.data[0] = wl_display_connect(nullptr);
+    if (__builtin_expect(context->window.data[0] == nullptr, false))
     {
         waterlily_engine_log(ERROR, "Failed to connect to display server.");
         return false;
     }
 
-    pRegistry = wl_display_get_registry(pDisplay);
-    (void)wl_registry_add_listener(pRegistry, &pRegistryListener, nullptr);
-    (void)wl_display_roundtrip(pDisplay);
-    if (__builtin_expect(pFoundInterfaces != pRequiredInterfaces, false))
-    {
-        waterlily_engine_log(ERROR, "Could not find the required interfaces.");
-        return false;
-    }
+    context->window.data[1] = wl_display_get_registry(context->window.data[0]);
+    struct wl_registry_listener registryListener = {&global, &globalRemove};
+    (void)wl_registry_add_listener(context->window.data[1], &registryListener,
+                                   context);
+    (void)wl_display_roundtrip(context->window.data[0]);
 
-    pSurface = wl_compositor_create_surface(pCompositor);
+    context->window.data[5] =
+        wl_compositor_create_surface(context->window.data[2]);
     // xdg_wm_base_get_xdg_surface
-    pShellSurface = (struct xdg_surface *)wl_proxy_marshal_flags(
-        (struct wl_proxy *)pShell, 2, &pXDGSurfaceInterface,
-        wl_proxy_get_version((struct wl_proxy *)pShell), 0, nullptr, pSurface);
+    context->window.data[6] = (struct xdg_surface *)wl_proxy_marshal_flags(
+        (struct wl_proxy *)context->window.data[3], 2, &pXDGSurfaceInterface,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data[3]), 0,
+        nullptr, context->window.data[5]);
+    struct xdg_surface_listener shellSurfaceListener = {&configure};
     // xdg_surface_add_listener
-    (void)wl_proxy_add_listener((struct wl_proxy *)pShellSurface,
-                                (void (**)(void))&pShellSurfaceListener,
-                                nullptr);
+    (void)wl_proxy_add_listener((struct wl_proxy *)context->window.data[6],
+                                (void (**)(void))&shellSurfaceListener,
+                                context->window.data[5]);
     // xdg_surface_get_toplevel
-    pToplevel = (struct xdg_toplevel *)wl_proxy_marshal_flags(
-        (struct wl_proxy *)pShellSurface, 1, &pXDGToplevelInterface,
-        wl_proxy_get_version((struct wl_proxy *)pShellSurface), 0, nullptr);
+    context->window.data[7] = (struct xdg_toplevel *)wl_proxy_marshal_flags(
+        (struct wl_proxy *)context->window.data[6], 1, &pXDGToplevelInterface,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data[6]), 0,
+        nullptr);
+    struct xdg_toplevel_listener toplevelListener = {&topConfigure, &close,
+                                                     &bounds, &capabilities};
     // xdg_toplevel_add_listener
-    (void)wl_proxy_add_listener((struct wl_proxy *)pToplevel,
-                                (void (**)(void))&pToplevelListener, nullptr);
+    (void)wl_proxy_add_listener((struct wl_proxy *)context->window.data[7],
+                                (void (**)(void))&toplevelListener, context);
 
     // xdg_toplevel_set_title
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)pToplevel, 2, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)pToplevel), 0, title);
+        (struct wl_proxy *)context->window.data[7], 2, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data[7]), 0,
+        title);
     // xdg_toplevel_set_app_id
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)pToplevel, 3, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)pToplevel), 0, title);
+        (struct wl_proxy *)context->window.data[7], 3, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data[7]), 0,
+        title);
     // xdg_toplevel_set_fullscreen
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)pToplevel, 11, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)pToplevel), 0, pOutput);
+        (struct wl_proxy *)context->window.data[7], 11, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data[7]), 0,
+        context->window.data[4]);
 
     return true;
 }
 
-void waterlily_window_destroy(void)
+void waterlily_window_destroy(waterlily_context_t *context)
 {
     // xdg_toplevel_destroy
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)pToplevel, 0, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)pToplevel),
+        (struct wl_proxy *)context->window.data[7], 0, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data[7]),
         WL_MARSHAL_FLAG_DESTROY);
     // xdg_surface_destroy
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)pShellSurface, 0, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)pShellSurface),
+        (struct wl_proxy *)context->window.data[6], 0, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data[6]),
         WL_MARSHAL_FLAG_DESTROY);
     // xdg_wm_base_destroy
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)pShell, 0, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)pShell),
+        (struct wl_proxy *)context->window.data[2], 0, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data[2]),
         WL_MARSHAL_FLAG_DESTROY);
 
-    wl_surface_destroy(pSurface);
-    wl_compositor_destroy(pCompositor);
-    wl_output_release(pOutput);
-    wl_registry_destroy(pRegistry);
-    wl_display_disconnect(pDisplay);
+    wl_surface_destroy(context->window.data[5]);
+    wl_compositor_destroy(context->window.data[2]);
+    wl_output_release(context->window.data[4]);
+    wl_registry_destroy(context->window.data[1]);
+    wl_display_disconnect(context->window.data[0]);
+    free(context->window.data);
 }
 
-bool waterlily_window_process(void)
+bool waterlily_window_process(waterlily_context_t *context)
 {
-    return wl_display_dispatch(pDisplay) != -1 &&
-           !waterlily_window_close(WATERLILY_CLOSE_GET);
-}
-
-void waterlily_window_measure(uint32_t *width, uint32_t *height)
-{
-    *width = pWidth;
-    *height = pHeight;
-}
-
-void waterlily_window_getData(void **data)
-{
-    data[0] = pDisplay;
-    data[1] = pSurface;
+    return wl_display_dispatch(context->window.data[0]) != -1 &&
+           !context->window.close;
 }
 

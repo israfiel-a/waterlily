@@ -1,13 +1,12 @@
 #include <Waterlily.h>
 
-bool waterlily_vulkan_recordBufferCommand(
-    VkCommandBuffer commandBuffer, waterlily_vulkan_surface_t *surface,
-    waterlily_vulkan_graphics_pipeline_t *pipeline, VkFramebuffer framebuffer)
+bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context)
 {
     VkCommandBufferBeginInfo beginInfo = {0};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-    VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    VkResult result = vkBeginCommandBuffer(
+        context->commandBuffers.buffers[context->currentFrame], &beginInfo);
     if (result != VK_SUCCESS)
     {
         waterlily_engine_log(ERROR, "Failed to begin command buffer, code %d.",
@@ -16,25 +15,26 @@ bool waterlily_vulkan_recordBufferCommand(
     }
 
     VkViewport viewport = {0};
-    uint32_t width, height;
-    waterlily_window_measure(&width, &height);
-    viewport.width = (float)width;
-    viewport.height = (float)height;
+    viewport.width = (float)context->window.extent.width;
+    viewport.height = (float)context->window.extent.height;
     viewport.maxDepth = 1;
 
     VkRect2D scissor = {0};
-    scissor.extent.width = width;
-    scissor.extent.height = height;
+    scissor.extent.width = context->window.extent.width;
+    scissor.extent.height = context->window.extent.height;
 
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    vkCmdSetViewport(context->commandBuffers.buffers[context->currentFrame], 0,
+                     1, &viewport);
+    vkCmdSetScissor(context->commandBuffers.buffers[context->currentFrame], 0,
+                    1, &scissor);
 
-    waterlily_vulkan_beginRenderpassCommand(framebuffer, commandBuffer, surface,
-                                            pipeline);
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-    vkCmdEndRenderPass(commandBuffer);
+    waterlily_vulkan_beginRenderpassCommand(context);
+    vkCmdDraw(context->commandBuffers.buffers[context->currentFrame], 3, 1, 0,
+              0);
+    vkCmdEndRenderPass(context->commandBuffers.buffers[context->currentFrame]);
 
-    result = vkEndCommandBuffer(commandBuffer);
+    result = vkEndCommandBuffer(
+        context->commandBuffers.buffers[context->currentFrame]);
     if (result != VK_SUCCESS)
     {
         waterlily_engine_log(ERROR, "Failed to end command buffer, code %d.",

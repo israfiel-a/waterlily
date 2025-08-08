@@ -1,8 +1,7 @@
 #include <Waterlily.h>
 
-void waterlily_vulkan_destroySurface(VkInstance instance,
-                                     waterlily_vulkan_surface_t *surface)
+void waterlily_vulkan_destroySurface(waterlily_context_t *context)
 {
-    vkDestroySurfaceKHR(instance, surface->surface, nullptr);
+    vkDestroySurfaceKHR(context->vulkan, context->window.surface, nullptr);
 }
 

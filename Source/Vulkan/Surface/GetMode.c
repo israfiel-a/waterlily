@@ -1,11 +1,10 @@
 #include <Waterlily.h>
 
-bool waterlily_vulkan_getModeSurface(VkPhysicalDevice device,
-                                     waterlily_vulkan_surface_t *surface)
+bool waterlily_vulkan_getModeSurface(waterlily_context_t *context)
 {
     uint32_t modeCount = 0;
     VkResult result = vkGetPhysicalDeviceSurfacePresentModesKHR(
-        device, surface->surface, &modeCount, nullptr);
+        context->gpu.physical, context->window.surface, &modeCount, nullptr);
     if (result != VK_SUCCESS)
     {
         waterlily_engine_log(
@@ -14,8 +13,8 @@ bool waterlily_vulkan_getModeSurface(VkPhysicalDevice device,
     }
 
     VkPresentModeKHR modes[modeCount];
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface->surface,
-                                              &modeCount, modes);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(
+        context->gpu.physical, context->window.surface, &modeCount, modes);
     if (result != VK_SUCCESS)
     {
         waterlily_engine_log(
@@ -29,14 +28,14 @@ bool waterlily_vulkan_getModeSurface(VkPhysicalDevice device,
         // VK_PRESENT_MODE_FIFO_KHR.
         if (modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
         {
-            surface->mode = modes[i];
+            context->window.mode = modes[i];
             waterlily_engine_log(SUCCESS, "Found optimal present mode.");
             return true;
         }
     }
 
     waterlily_engine_log(ERROR, "Failed to find optimal present mode.");
-    surface->mode = VK_PRESENT_MODE_FIFO_KHR;
+    context->window.mode = VK_PRESENT_MODE_FIFO_KHR;
     return true;
 }
 

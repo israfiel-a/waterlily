@@ -1,7 +1,7 @@
 #include <Waterlily.h>
 
-void waterlily_vulkan_destroy(VkInstance instance)
+void waterlily_vulkan_destroy(waterlily_context_t *context)
 {
-    vkDestroyInstance(instance, nullptr);
+    vkDestroyInstance(context->vulkan, nullptr);
 }
 

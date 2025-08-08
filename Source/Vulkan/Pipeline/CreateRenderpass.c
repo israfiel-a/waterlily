@@ -1,8 +1,6 @@
 #include <Waterlily.h>
 
-bool waterlily_vulkan_createRenderpassPipeline(
-    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline,
-    waterlily_vulkan_surface_t *surface)
+bool waterlily_vulkan_createRenderpassPipeline(waterlily_context_t *context)
 {
     VkAttachmentReference colorAttachmentRef = {0};
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -19,7 +17,7 @@ bool waterlily_vulkan_createRenderpassPipeline(
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     VkAttachmentDescription colorAttachment = {0};
-    colorAttachment.format = surface->format.format;
+    colorAttachment.format = context->window.format.format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -35,11 +33,13 @@ bool waterlily_vulkan_createRenderpassPipeline(
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    VkResult result = vkCreateRenderPass(device, &renderPassInfo, nullptr,
-                                         &pipeline->renderpass);
+    VkResult result =
+        vkCreateRenderPass(context->gpu.logical, &renderPassInfo, nullptr,
+                           &context->pipeline.renderpass);
     if (result != VK_SUCCESS)
     {
-        waterlily_engine_log(ERROR, "Failed to create renderpass. Code: %d.", result);
+        waterlily_engine_log(ERROR, "Failed to create renderpass. Code: %d.",
+                             result);
         return false;
     }
     waterlily_engine_log(SUCCESS, "Created renderpass.");

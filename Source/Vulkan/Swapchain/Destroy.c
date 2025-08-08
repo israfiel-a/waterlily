@@ -1,15 +1,15 @@
 #include <Waterlily.h>
+#include <stdlib.h>
 
-void waterlily_vulkan_destroySwapchain(VkDevice device, uint32_t imageCount,
-                                       VkFramebuffer *framebuffers,
-                                       VkImageView *images,
-                                       VkSwapchainKHR swapchain)
+void waterlily_vulkan_destroySwapchain(waterlily_context_t *context)
 {
-    for (size_t i = 0; i < imageCount; ++i)
+    for (size_t i = 0; i < context->swapchain.imageCount; ++i)
     {
-        vkDestroyFramebuffer(device, framebuffers[i], nullptr);
-        vkDestroyImageView(device, images[i], nullptr);
+        vkDestroyFramebuffer(context->gpu.logical, context->swapchain.framebuffers[i], nullptr);
+        vkDestroyImageView(context->gpu.logical, context->swapchain.images[i], nullptr);
     }
-    vkDestroySwapchainKHR(device, swapchain, nullptr);
+    vkDestroySwapchainKHR(context->gpu.logical, context->swapchain.handle, nullptr);
+    free(context->swapchain.framebuffers);
+    free(context->swapchain.images);
 }
 

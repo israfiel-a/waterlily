@@ -7,20 +7,21 @@ static inline uint32_t clamp(uint32_t d, uint32_t min, uint32_t max)
     return t > max ? max : t;
 }
 
-void waterlily_vulkan_getExtentSurface(uint32_t width, uint32_t height,
-                                       waterlily_vulkan_surface_t *surface)
+void waterlily_vulkan_getExtentSurface(waterlily_context_t *context)
 {
-    if (surface->capabilities.currentExtent.width != UINT32_MAX)
+    if (context->window.capabilities.currentExtent.width != UINT32_MAX)
     {
-        surface->extent = surface->capabilities.currentExtent;
+        context->window.extent = context->window.capabilities.currentExtent;
         return;
     }
 
-    surface->extent.width =
-        clamp(width, surface->capabilities.minImageExtent.width,
-              surface->capabilities.maxImageExtent.width);
-    surface->extent.height =
-        clamp(height, surface->capabilities.minImageExtent.height,
-              surface->capabilities.maxImageExtent.height);
+    context->window.extent.width =
+        clamp(context->window.extent.width,
+              context->window.capabilities.minImageExtent.width,
+              context->window.capabilities.maxImageExtent.width);
+    context->window.extent.height =
+        clamp(context->window.extent.height,
+              context->window.capabilities.minImageExtent.height,
+              context->window.capabilities.maxImageExtent.height);
 }
 

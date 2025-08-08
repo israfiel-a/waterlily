@@ -86,7 +86,6 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Partition.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Recreate.c"
-    "${Waterlily_SOURCE_DIR}/Source/Window/Resized.c"
 )
 
 if(WATERLILY_WAYLAND)

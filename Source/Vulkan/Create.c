@@ -1,6 +1,6 @@
 #include <Waterlily.h>
 
-bool waterlily_vulkan_create(VkInstance *instance)
+bool waterlily_vulkan_create(waterlily_context_t *context)
 {
     VkApplicationInfo applicationInfo = {0};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -31,7 +31,7 @@ bool waterlily_vulkan_create(VkInstance *instance)
     instanceInfo.enabledLayerCount = layerCount;
     instanceInfo.ppEnabledLayerNames = layers;
 
-    VkResult result = vkCreateInstance(&instanceInfo, nullptr, instance);
+    VkResult result = vkCreateInstance(&instanceInfo, nullptr, &context->vulkan);
     if (result != VK_SUCCESS)
     {
         waterlily_engine_log(

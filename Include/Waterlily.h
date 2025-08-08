@@ -8,15 +8,71 @@
 
 #define WATERLILY_CONCURRENT_FRAMES 2
 
-typedef struct waterlily_arguments
+typedef struct waterlily_vulkan_queue
 {
+    uint32_t index;
+    VkQueue handle;
+} waterlily_vulkan_queue_t;
+
+typedef struct waterlily_context
+{
+    VkInstance vulkan;
+    uint32_t currentFrame;
     struct
     {
-        bool displayFPS : 1;
-    } flags;
-    char *requiredDirectory;
-    size_t requiredDirectoryLength;
-} waterlily_arguments_t;
+        VkPhysicalDevice physical;
+        VkDevice logical;
+    } gpu;
+    struct
+    {
+        struct
+        {
+            bool displayFPS : 1;
+        } flags;
+        char *requiredDirectory;
+        size_t requiredDirectoryLength;
+    } arguments;
+    struct
+    {
+        waterlily_vulkan_queue_t graphics;
+        waterlily_vulkan_queue_t present;
+    } queues;
+    struct
+    {
+        VkSurfaceKHR surface;
+        VkPresentModeKHR mode;
+        VkSurfaceFormatKHR format;
+        VkSurfaceCapabilitiesKHR capabilities;
+        VkExtent2D extent;
+        uint32_t scale;
+        void *handle;
+        void **data;
+        size_t dataCount;
+        bool close;
+        bool resized;
+    } window;
+    struct
+    {
+        VkPipeline handle;
+        VkPipelineLayout layout;
+        VkRenderPass renderpass;
+    } pipeline;
+    struct
+    {
+        VkSwapchainKHR handle;
+        VkImageView *images;
+        VkFramebuffer *framebuffers;
+        uint32_t imageCount;
+    } swapchain;
+    struct
+    {
+        VkSemaphore imageAvailableSemphores[WATERLILY_CONCURRENT_FRAMES];
+        VkSemaphore renderFinishedSemaphores[WATERLILY_CONCURRENT_FRAMES];
+        VkFence fences[WATERLILY_CONCURRENT_FRAMES];
+        VkCommandPool pool;
+        VkCommandBuffer buffers[WATERLILY_CONCURRENT_FRAMES];
+    } commandBuffers;
+} waterlily_context_t;
 
 typedef enum waterlily_log_type : uint8_t
 {
@@ -47,27 +103,6 @@ typedef enum waterlily_resize_type : uint8_t
     WATERLILY_RESIZE_NO
 } waterlily_resize_type_t;
 
-typedef struct waterlily_vulkan_queue_indices
-{
-    uint32_t graphics;
-    uint32_t present;
-} waterlily_vulkan_queue_indices_t;
-
-typedef struct waterlily_vulkan_queues
-{
-    VkQueue graphics;
-    VkQueue present;
-} waterlily_vulkan_queues_t;
-
-typedef struct waterlily_vulkan_surface
-{
-    VkSurfaceKHR surface;
-    VkPresentModeKHR mode;
-    VkSurfaceFormatKHR format;
-    VkSurfaceCapabilitiesKHR capabilities;
-    VkExtent2D extent;
-} waterlily_vulkan_surface_t;
-
 typedef struct waterlily_vulkan_pipeline_info
 {
     VkPipelineVertexInputStateCreateInfo input;
@@ -80,13 +115,6 @@ typedef struct waterlily_vulkan_pipeline_info
     VkPipelineDynamicStateCreateInfo dynamic;
 } waterlily_vulkan_pipeline_info_t;
 
-typedef struct waterlily_vulkan_graphics_pipeline
-{
-    VkPipeline pipeline;
-    VkPipelineLayout layout;
-    VkRenderPass renderpass;
-} waterlily_vulkan_graphics_pipeline_t;
-
 extern const char *const waterlily_vulkan_gExtensions[2];
 static const char *const waterlily_vulkan_gDeviceExtensions[] = {
     "VK_KHR_swapchain",
@@ -98,123 +126,56 @@ static const char *const waterlily_vulkan_gDeviceExtensions[] = {
         format __VA_OPT__(, ) __VA_ARGS__)
 
 bool waterlily_engine_digest(int argc, const char *const *const argv,
-                             waterlily_arguments_t *arguments);
-bool waterlily_engine_setup(const waterlily_arguments_t *const arguments);
+                             waterlily_context_t *context);
+bool waterlily_engine_setup(waterlily_context_t *context);
 void(waterlily_engine_log)(const waterlily_log_t *data,
                            const char *const format, ...);
 
-bool waterlily_window_create(const char *const title);
-void waterlily_window_destroy(void);
-void waterlily_window_measure(uint32_t *width, uint32_t *height);
-void waterlily_window_getData(void **data);
-bool waterlily_window_process(void);
-bool waterlily_window_resized(waterlily_resize_type_t type);
-static inline bool waterlily_window_close(waterlily_close_type_t type)
-{
-    static bool close = false;
-    if (type == WATERLILY_CLOSE_ON)
-        close = true;
-    else if (type == WATERLILY_CLOSE_OFF)
-        close = false;
+bool waterlily_window_create(const char *const title,
+                             waterlily_context_t *context);
+void waterlily_window_destroy(waterlily_context_t *context);
+bool waterlily_window_process(waterlily_context_t *context);
 
-    return close;
-}
+bool waterlily_vulkan_create(waterlily_context_t *context);
+void waterlily_vulkan_destroy(waterlily_context_t *context);
+bool waterlily_vulkan_render(waterlily_context_t *context);
+bool waterlily_vulkan_sync(waterlily_context_t *context);
 
-bool waterlily_vulkan_create(VkInstance *instance);
-void waterlily_vulkan_destroy(VkInstance instance);
-bool waterlily_vulkan_render(VkDevice device,
-                             waterlily_vulkan_surface_t *surface,
-                             waterlily_vulkan_queue_indices_t *indices,
-                             waterlily_vulkan_queues_t *queues,
-                             waterlily_vulkan_graphics_pipeline_t *pipeline,
-                             VkCommandBuffer buffer, VkFence fence,
-                             VkSemaphore imageAvailableSemaphore,
-                             VkSemaphore renderFinishedSemaphore,
-                             VkSwapchainKHR *swapchain, uint32_t *imageCount,
-                             VkFramebuffer *framebuffers, VkImageView *images);
-bool waterlily_vulkan_sync(VkDevice device);
+bool waterlily_vulkan_getPhysicalGPU(waterlily_context_t *context);
+bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context);
+void waterlily_vulkan_destroyGPU(waterlily_context_t *context);
 
-bool waterlily_vulkan_getPhysicalGPU(VkInstance instance,
-                                     VkPhysicalDevice *device,
-                                     waterlily_vulkan_queue_indices_t *indices,
-                                     const VkSurfaceKHR surface);
-bool waterlily_vulkan_createLogicalGPU(
-    const VkPhysicalDevice physical, VkDevice *device,
-    waterlily_vulkan_queues_t *queues,
-    const waterlily_vulkan_queue_indices_t *indices);
-void waterlily_vulkan_destroyGPU(VkDevice logical);
+bool waterlily_vulkan_createSurface(waterlily_context_t *context);
+bool waterlily_vulkan_getFormatSurface(waterlily_context_t *context);
+bool waterlily_vulkan_getCapabilitiesSurface(waterlily_context_t *context);
+void waterlily_vulkan_getExtentSurface(waterlily_context_t *context);
+bool waterlily_vulkan_getModeSurface(waterlily_context_t *context);
+void waterlily_vulkan_destroySurface(waterlily_context_t *context);
 
-bool waterlily_vulkan_createSurface(VkInstance instance,
-                                    waterlily_vulkan_surface_t *surface);
-bool waterlily_vulkan_getFormatSurface(VkPhysicalDevice device,
-                                       waterlily_vulkan_surface_t *surface);
-bool waterlily_vulkan_getCapabilitiesSurface(
-    VkPhysicalDevice device, waterlily_vulkan_surface_t *surface);
-void waterlily_vulkan_getExtentSurface(uint32_t width, uint32_t height,
-                                       waterlily_vulkan_surface_t *surface);
-bool waterlily_vulkan_getModeSurface(VkPhysicalDevice device,
-                                     waterlily_vulkan_surface_t *surface);
-void waterlily_vulkan_destroySurface(VkInstance instance,
-                                     waterlily_vulkan_surface_t *surface);
-
-bool waterlily_vulkan_createSwapchain(
-    VkDevice device, uint32_t *imageCount, VkSwapchainKHR *swapchain,
-    waterlily_vulkan_surface_t *surface,
-    waterlily_vulkan_queue_indices_t *indices);
-bool waterlily_vulkan_partitionSwapchain(VkDevice device,
-                                         waterlily_vulkan_surface_t *surface,
-                                         VkSwapchainKHR swapchain,
-                                         uint32_t imageCount,
-                                         VkImageView *images);
-bool waterlily_vulkan_createFramebuffersSwapchain(
-    VkDevice device, waterlily_vulkan_surface_t *surface,
-    VkRenderPass renderpass, uint32_t count, VkImageView *images,
-    VkFramebuffer *framebuffers);
-void waterlily_vulkan_destroySwapchain(VkDevice device, uint32_t imageCount,
-                                       VkFramebuffer *framebuffers,
-                                       VkImageView *images,
-                                       VkSwapchainKHR swapchain);
-bool waterlily_vulkan_recreateSwapchain(
-    VkDevice device, waterlily_vulkan_surface_t *surface,
-    waterlily_vulkan_queue_indices_t *indices,
-    waterlily_vulkan_graphics_pipeline_t *pipeline, uint32_t *imageCount,
-    VkFramebuffer *framebuffers, VkImageView *images,
-    VkSwapchainKHR *swapchain);
+bool waterlily_vulkan_createSwapchain(waterlily_context_t *context);
+bool waterlily_vulkan_partitionSwapchain(waterlily_context_t *context);
+bool waterlily_vulkan_createFramebuffersSwapchain(waterlily_context_t *context);
+void waterlily_vulkan_destroySwapchain(waterlily_context_t *context);
+bool waterlily_vulkan_recreateSwapchain(waterlily_context_t *context);
 
 bool waterlily_vulkan_setupShadersPipeline(
-    VkDevice device, const char *const *const stages, size_t count,
+    waterlily_context_t *context, const char *const *const stages, size_t count,
     VkPipelineShaderStageCreateInfo *storage);
 void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_pipeline_info_t *info);
-bool waterlily_vulkan_createLayoutPipeline(
-    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline);
-bool waterlily_vulkan_createRenderpassPipeline(
-    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline,
-    waterlily_vulkan_surface_t *surface);
-bool waterlily_vulkan_createPipeline(
-    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline,
-    VkPipelineShaderStageCreateInfo *stages, size_t stageCount,
-    waterlily_vulkan_pipeline_info_t *info);
-void waterlily_vulkan_destroyPipeline(
-    VkDevice device, waterlily_vulkan_graphics_pipeline_t *pipeline);
+bool waterlily_vulkan_createLayoutPipeline(waterlily_context_t *context);
+bool waterlily_vulkan_createRenderpassPipeline(waterlily_context_t *context);
+bool waterlily_vulkan_createPipeline(waterlily_context_t *context,
+                                     VkPipelineShaderStageCreateInfo *stages,
+                                     size_t stageCount,
+                                     waterlily_vulkan_pipeline_info_t *info);
+void waterlily_vulkan_destroyPipeline(waterlily_context_t *context);
 
-bool waterlily_vulkan_createBuffersCommand(
-    VkDevice device, waterlily_vulkan_queue_indices_t *indices,
-    VkCommandPool *commandPool, VkCommandBuffer *buffers);
-bool waterlily_vulkan_createSyncsCommand(VkDevice device, VkFence *fences,
-                                         VkSemaphore *imageAvailableSemphores,
-                                         VkSemaphore *renderFinishedSemaphores);
-void waterlily_vulkan_beginRenderpassCommand(
-    VkFramebuffer framebuffer, VkCommandBuffer buffer,
-    waterlily_vulkan_surface_t *surface,
-    waterlily_vulkan_graphics_pipeline_t *pipeline);
-bool waterlily_vulkan_recordBufferCommand(
-    VkCommandBuffer commandBuffer, waterlily_vulkan_surface_t *surface,
-    waterlily_vulkan_graphics_pipeline_t *pipeline, VkFramebuffer framebuffer);
-void waterlily_vulkan_destroyBuffers(VkDevice device, VkCommandPool pool);
-void waterlily_vulkan_destroySyncs(VkDevice device,
-                                   VkSemaphore *imageAvailableSemaphores,
-                                   VkSemaphore *renderFinishedSemaphores,
-                                   VkFence *fences);
+bool waterlily_vulkan_createBuffersCommand(waterlily_context_t *context);
+bool waterlily_vulkan_createSyncsCommand(waterlily_context_t *context);
+void waterlily_vulkan_beginRenderpassCommand(waterlily_context_t *context);
+bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context);
+void waterlily_vulkan_destroyBuffers(waterlily_context_t *context);
+void waterlily_vulkan_destroySyncs(waterlily_context_t *context);
 
 bool waterlily_files_open(const char *const path, FILE **file);
 static inline void waterlily_files_close(FILE *file) { fclose(file); }

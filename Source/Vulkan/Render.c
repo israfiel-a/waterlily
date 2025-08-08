@@ -1,26 +1,18 @@
 #include <Waterlily.h>
 
-bool waterlily_vulkan_render(VkDevice device,
-                             waterlily_vulkan_surface_t *surface,
-                             waterlily_vulkan_queue_indices_t *indices,
-                             waterlily_vulkan_queues_t *queues,
-                             waterlily_vulkan_graphics_pipeline_t *pipeline,
-                             VkCommandBuffer buffer, VkFence fence,
-                             VkSemaphore imageAvailableSemaphore,
-                             VkSemaphore renderFinishedSemaphore,
-                             VkSwapchainKHR *swapchain, uint32_t *imageCount,
-                             VkFramebuffer *framebuffers, VkImageView *images)
+bool waterlily_vulkan_render(waterlily_context_t *context)
 {
-    vkWaitForFences(device, 1, &fence, true, UINT64_MAX);
+    vkWaitForFences(context->gpu.logical, 1,
+                    &context->commandBuffers.fences[context->currentFrame],
+                    true, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result =
-        vkAcquireNextImageKHR(device, *swapchain, UINT64_MAX,
-                              imageAvailableSemaphore, nullptr, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(
+        context->gpu.logical, context->swapchain.handle, UINT64_MAX,
+        context->commandBuffers.imageAvailableSemphores[context->currentFrame],
+        nullptr, &imageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-        return waterlily_vulkan_recreateSwapchain(
-            device, surface, indices, pipeline, imageCount, framebuffers,
-            images, swapchain);
+        return waterlily_vulkan_recreateSwapchain(context);
     else if (result != VK_SUCCESS)
     {
         waterlily_engine_log(
@@ -28,11 +20,12 @@ bool waterlily_vulkan_render(VkDevice device,
         return false;
     }
 
-    vkResetFences(device, 1, &fence);
+    vkResetFences(context->gpu.logical, 1,
+                  &context->commandBuffers.fences[context->currentFrame]);
 
-    vkResetCommandBuffer(buffer, 0);
-    if (!waterlily_vulkan_recordBufferCommand(buffer, surface, pipeline,
-                                              framebuffers[imageIndex]))
+    vkResetCommandBuffer(context->commandBuffers.buffers[context->currentFrame],
+                         0);
+    if (!waterlily_vulkan_recordBufferCommand(context))
         return false;
 
     VkSubmitInfo submitInfo = {0};
@@ -41,14 +34,20 @@ bool waterlily_vulkan_render(VkDevice device,
     VkPipelineStageFlags waitStages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &imageAvailableSemaphore;
+    submitInfo.pWaitSemaphores =
+        &context->commandBuffers.imageAvailableSemphores[context->currentFrame];
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &buffer;
+    submitInfo.pCommandBuffers =
+        &context->commandBuffers.buffers[context->currentFrame];
 
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &renderFinishedSemaphore;
-    result = vkQueueSubmit(queues->graphics, 1, &submitInfo, fence);
+    submitInfo.pSignalSemaphores =
+        &context->commandBuffers
+             .renderFinishedSemaphores[context->currentFrame];
+    result =
+        vkQueueSubmit(context->queues.graphics.handle, 1, &submitInfo,
+                      context->commandBuffers.fences[context->currentFrame]);
     if (result != VK_SUCCESS)
     {
         waterlily_engine_log(ERROR, "Failed to submit to the queue, code %d.",
@@ -59,18 +58,18 @@ bool waterlily_vulkan_render(VkDevice device,
     VkPresentInfoKHR presentInfo = {0};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
+    presentInfo.pWaitSemaphores =
+        &context->commandBuffers
+             .renderFinishedSemaphores[context->currentFrame];
 
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapchain;
+    presentInfo.pSwapchains = &context->swapchain.handle;
     presentInfo.pImageIndices = &imageIndex;
 
-    result = vkQueuePresentKHR(queues->present, &presentInfo);
+    result = vkQueuePresentKHR(context->queues.graphics.handle, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
-        if (!waterlily_vulkan_recreateSwapchain(
-                device, surface, indices, pipeline, imageCount, framebuffers,
-                images, swapchain))
+        if (!waterlily_vulkan_recreateSwapchain(context))
             return false;
     }
     else if (result != VK_SUCCESS)
