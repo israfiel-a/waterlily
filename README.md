@@ -14,6 +14,7 @@ Waterlily is a game engine/toolkit built for pixelart, tile-based RPG games. It'
 Waterlily is built to depend on little but what comes with your operating system installation. All it relies on are the following;
 
 - [Vulkan](https://www.vulkan.org/): The Vulkan library is a high-performance and low-abstraction rendering library built directly over baremetal GPU-CPU communications.
+  - [GLSLang](https://github.com/KhronosGroup/glslang): The GLSLang project provides a fast and efficient SPIR-V generator for the GLSL and HLSL shader languages.
 - [Xkbcommon](https://xkbcommon.org/): Xkbcommon is a library for handling keyboard input, and it is how windowing systems communicate with the application.
 - [Wayland](https://wayland.freedesktop.org/): The Wayland protocol is a set of specifications that describe a modern windowing system. 
 
