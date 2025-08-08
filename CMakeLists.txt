@@ -49,6 +49,7 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Files/Measure.c"
     "${Waterlily_SOURCE_DIR}/Source/Files/Open.c"
     "${Waterlily_SOURCE_DIR}/Source/Files/Read.c"
+    "${Waterlily_SOURCE_DIR}/Source/Input/CheckKeys.c"
     "${Waterlily_SOURCE_DIR}/Source/Input/CreateContext.c"
     "${Waterlily_SOURCE_DIR}/Source/Input/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Input/SetKeymap.c"

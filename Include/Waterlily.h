@@ -17,17 +17,19 @@ typedef struct waterlily_vulkan_queue
     VkQueue handle;
 } waterlily_vulkan_queue_t;
 
+typedef enum waterlily_key_state
+{
+    WATERLILY_KEY_STATE_DOWN,
+    WATERLILY_KEY_STATE_UP,
+    WATERLILY_KEY_STATE_REPEAT
+} waterlily_key_state_t;
+
 typedef struct waterlily_key
 {
     uint64_t timestamp;
-    xkb_keysym_t sym;
+    xkb_keysym_t symbol;
     xkb_keycode_t scancode;
-    enum
-    {
-        WATERLILY_KEY_STATE_DOWN,
-        WATERLILY_KEY_STATE_UP,
-        WATERLILY_KEY_STATE_REPEAT
-    } state;
+    waterlily_key_state_t state;
 } waterlily_key_t;
 
 typedef struct waterlily_context
@@ -106,6 +108,14 @@ typedef struct waterlily_context
         VkCommandBuffer buffers[WATERLILY_CONCURRENT_FRAMES];
     } commandBuffers;
 } waterlily_context_t;
+
+typedef struct waterlily_key_combination
+{
+    waterlily_key_t first;
+    waterlily_key_t second;
+    void (*func)(waterlily_key_t *first, waterlily_key_t *second,
+                 waterlily_context_t *context);
+} waterlily_key_combination_t;
 
 typedef enum waterlily_log_type : uint8_t
 {
@@ -228,6 +238,8 @@ void waterlily_input_updateModifiers(waterlily_context_t *context,
                                      uint32_t depressed, uint32_t latched,
                                      uint32_t locked, uint32_t group);
 void waterlily_input_destroy(waterlily_context_t *context);
+void waterlily_input_checkKeys(waterlily_context_t *context,
+                               waterlily_key_combination_t *keys, size_t count);
 
 #endif // WATERLILY_MAIN_H
 
