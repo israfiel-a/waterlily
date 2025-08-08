@@ -5,14 +5,30 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <vulkan/vulkan.h>
+#include <wayland-client.h>
+#include <xkbcommon/xkbcommon.h>
 
 #define WATERLILY_CONCURRENT_FRAMES 2
+#define WATERLILY_KEY_TIMER_MS 50
 
 typedef struct waterlily_vulkan_queue
 {
     uint32_t index;
     VkQueue handle;
 } waterlily_vulkan_queue_t;
+
+typedef struct waterlily_key
+{
+    uint64_t timestamp;
+    xkb_keysym_t sym;
+    xkb_keycode_t scancode;
+    enum
+    {
+        WATERLILY_KEY_STATE_DOWN,
+        WATERLILY_KEY_STATE_UP,
+        WATERLILY_KEY_STATE_REPEAT
+    } state;
+} waterlily_key_t;
 
 typedef struct waterlily_context
 {
@@ -48,28 +64,26 @@ typedef struct waterlily_context
         void *handle;
         bool close;
         bool resized;
-        union
+        struct
         {
-            struct
-            {
-                void *display;
-                int screen;
-                int root;
-                unsigned long window;
-            } x11;
-            struct
-            {
-                void *display;
-                void *registry;
-                void *compositor;
-                void *output;
-                void *surface;
-                void *shell;
-                void *shellSurface;
-                void *toplevel;
-            } wayland;
+            struct wl_display *display;
+            struct wl_registry *registry;
+            struct wl_compositor *compositor;
+            struct wl_output *output;
+            struct wl_seat *seat;
+            struct wl_keyboard *keyboard;
+            struct wl_surface *surface;
+            void *shell;
+            void *shellSurface;
+            void *toplevel;
         } data;
     } window;
+    struct
+    {
+        struct xkb_context *context;
+        struct xkb_state *state;
+        waterlily_key_t down[2];
+    } input;
     struct
     {
         VkPipeline handle;
@@ -134,7 +148,11 @@ typedef struct waterlily_vulkan_pipeline_info
     VkPipelineDynamicStateCreateInfo dynamic;
 } waterlily_vulkan_pipeline_info_t;
 
-extern const char *const waterlily_vulkan_gExtensions[2];
+static const char *const waterlily_vulkan_gExtensions[] = {
+    "VK_KHR_surface",
+    "VK_KHR_wayland_surface",
+};
+
 static const char *const waterlily_vulkan_gDeviceExtensions[] = {
     "VK_KHR_swapchain",
 };
@@ -201,6 +219,15 @@ static inline void waterlily_files_close(FILE *file) { fclose(file); }
 bool waterlily_files_measure(FILE *file, size_t *length);
 bool waterlily_files_read(FILE *file, size_t count, uint8_t *buffer);
 bool waterlily_files_execute(char *const *args);
+
+bool waterlily_input_createContext(waterlily_context_t *context);
+bool waterlily_input_setKeymap(waterlily_context_t *context,
+                               const char *const string);
+bool waterlily_input_createState(waterlily_context_t *context);
+void waterlily_input_updateModifiers(waterlily_context_t *context,
+                                     uint32_t depressed, uint32_t latched,
+                                     uint32_t locked, uint32_t group);
+void waterlily_input_destroy(waterlily_context_t *context);
 
 #endif // WATERLILY_MAIN_H
 

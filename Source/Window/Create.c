@@ -1,8 +1,8 @@
 /**
- * @brief This file provides the complete Wayland implementation of the
+ * @brief This file provides the complete implementation of the
  * waterlily interface. This only depends upon the default C-standard @c
- * stdint.h, and @c string.h files, and the Wayland client header @c
- * wayland-client.h. I hate this interface. I think it's awful, and it
+ * stdint.h, and @c string.h files, and the client header @c
+ *-client.h. I hate this interface. I think it's awful, and it
  * introduces data that can only be properly handled as private, global
  * variables. Yuck.
  * @since v0.0.1
@@ -32,7 +32,8 @@
 
 #include <Waterlily.h>
 #include <string.h>
-#include <wayland-client.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 /**
  * @brief Convert an interface into a double-referenced pointer via some casting
@@ -259,7 +260,7 @@ static void topConfigure(void *d, void *, int32_t w, int32_t h,
 /**
  * @copydoc xdg_toplevel_listener::close
  */
-static void close(void *d, void *)
+static void closeToplevel(void *d, void *)
 {
     waterlily_context_t *context = d;
     context->window.close = true;
@@ -373,30 +374,18 @@ struct xdg_toplevel_listener
                          struct wl_array *capabilities);
 };
 
-/**
- * @copydoc wl_output_listener::geometry
- */
 static void geometry(void *, struct wl_output *, int32_t, int32_t, int32_t,
                      int32_t, int32_t, const char *, const char *, int32_t)
 {
 }
 
-/**
- * @copydoc wl_output_listener::mode
- */
 static void mode(void *, struct wl_output *, uint32_t, int32_t, int32_t,
                  int32_t)
 {
 }
 
-/**
- * @copydoc wl_output_listener::finish
- */
 static void finish(void *, struct wl_output *) {}
 
-/**
- * @copydoc wl_output_listener::scale
- */
 static void scale(void *d, struct wl_output *, int32_t s)
 {
     waterlily_context_t *context = d;
@@ -404,19 +393,94 @@ static void scale(void *d, struct wl_output *, int32_t s)
     waterlily_engine_log(INFO, "Monitor scale %d.", context->window.scale);
 }
 
-/**
- * @copydoc wl_output_listener::name
- */
 static void name(void *, struct wl_output *, const char *) {}
 
-/**
- * @copydoc wl_output_listener::description
- */
 static void description(void *, struct wl_output *, const char *) {}
 
-/**
- * @copydoc wl_registry_listener::global
- */
+static void keymap(void *d, struct wl_keyboard *, uint32_t f, int32_t m,
+                   uint32_t s)
+{
+    waterlily_context_t *context = d;
+
+    if (f != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1)
+    {
+        waterlily_engine_log(ERROR, "Got unsupported keyboard format '%d'.", f);
+        context->window.close = true;
+        return;
+    }
+
+    char *map_shm = mmap(NULL, s, PROT_READ, MAP_PRIVATE, m, 0);
+    if (map_shm == MAP_FAILED)
+    {
+        waterlily_engine_log(ERROR, "Failed to map keymap file.");
+        context->window.close = true;
+        return;
+    }
+
+    waterlily_input_setKeymap(context, map_shm);
+    munmap(map_shm, s);
+    close(m);
+}
+
+static void enter(void *, struct wl_keyboard *, uint32_t, struct wl_surface *,
+                  struct wl_array *)
+{
+}
+
+static void leave(void *, struct wl_keyboard *, uint32_t, struct wl_surface *)
+{
+}
+
+void key(void *d, struct wl_keyboard *, uint32_t, uint32_t t, uint32_t k,
+         uint32_t s)
+{
+    waterlily_context_t *context = d;
+    if (t - context->input.down[0].timestamp > WATERLILY_KEY_TIMER_MS)
+    {
+        context->input.down[0] = (waterlily_key_t){
+            t,
+            xkb_state_key_get_one_sym(context->input.state, k + 8),
+            k + 8,
+            s,
+        };
+        return;
+    }
+    else if (t - context->input.down[1].timestamp > WATERLILY_KEY_TIMER_MS)
+    {
+        context->input.down[1] = (waterlily_key_t){
+            t,
+            xkb_state_key_get_one_sym(context->input.state, k + 8),
+            k + 8,
+            s,
+        };
+        return;
+    }
+}
+
+void modifiers(void *d, struct wl_keyboard *, uint32_t, uint32_t p, uint32_t a,
+               uint32_t l, uint32_t g)
+{
+    waterlily_context_t *context = d;
+    waterlily_input_updateModifiers(context, p, a, l, g);
+}
+
+void repeatInfo(void *, struct wl_keyboard *, int32_t, int32_t) {}
+
+static void capabilitiesChange(void *, struct wl_seat *, uint32_t) {}
+
+static void seatName(void *d, struct wl_seat *, const char *name)
+{
+    waterlily_engine_log(INFO, "Seat named '%s'.", name);
+
+    waterlily_context_t *context = d;
+    context->window.data.keyboard =
+        wl_seat_get_keyboard(context->window.data.seat);
+    struct wl_keyboard_listener keyboardListener = {
+        keymap, enter, leave, key, modifiers, repeatInfo};
+    wl_keyboard_add_listener(context->window.data.keyboard, &keyboardListener,
+                             context);
+}
+
 static void global(void *d, struct wl_registry *registry,
                    uint32_t interfaceName, const char *interface,
                    uint32_t version)
@@ -425,19 +489,19 @@ static void global(void *d, struct wl_registry *registry,
 
     if (strcmp(interface, wl_compositor_interface.name) == 0)
     {
-        context->window.data.wayland.compositor = wl_registry_bind(
+        context->window.data.compositor = wl_registry_bind(
             registry, interfaceName, &wl_compositor_interface, version);
         waterlily_engine_log(SUCCESS, "Connected to compositor v%d.", version);
         return;
     }
     else if (strcmp(interface, "xdg_wm_base") == 0)
     {
-        context->window.data.wayland.shell = wl_registry_bind(
+        context->window.data.shell = wl_registry_bind(
             registry, interfaceName, &pXDGShellInterface, version);
         struct xdg_wm_base_listener shellListener = {&ping};
         // xdg_wm_base_add_listener
         (void)wl_proxy_add_listener(
-            (struct wl_proxy *)context->window.data.wayland.shell,
+            (struct wl_proxy *)context->window.data.shell,
             (void (**)(void))&shellListener, nullptr);
         waterlily_engine_log(SUCCESS, "Connected to window manager v%d.",
                              version);
@@ -445,128 +509,94 @@ static void global(void *d, struct wl_registry *registry,
     }
     else if (strcmp(interface, wl_output_interface.name) == 0)
     {
-        context->window.data.wayland.output = wl_registry_bind(
+        context->window.data.output = wl_registry_bind(
             registry, interfaceName, &wl_output_interface, version);
         struct wl_output_listener outputListener = {
             &geometry, &mode, &finish, &scale, &name, &description};
-        (void)wl_output_add_listener(context->window.data.wayland.output,
+        (void)wl_output_add_listener(context->window.data.output,
                                      &outputListener, context);
         waterlily_engine_log(SUCCESS, "Connected to output device v%d.",
                              version);
+        return;
+    }
+    else if (strcmp(interface, wl_seat_interface.name) == 0)
+    {
+        context->window.data.seat = wl_registry_bind(
+            registry, interfaceName, &wl_seat_interface, version);
+        struct wl_seat_listener seatListener = {&capabilitiesChange, &seatName};
+        (void)wl_seat_add_listener(context->window.data.seat, &seatListener,
+                                   context);
+        waterlily_engine_log(SUCCESS, "Connected to seat device v%d.", version);
         return;
     }
 
     waterlily_engine_log(INFO, "Found unknown interface '%s'.", interface);
 }
 
-/**
- * @copydoc wl_registry_listener::global_remove
- */
 static void globalRemove(void *, struct wl_registry *, uint32_t) {}
 
 bool waterlily_window_create(const char *const title,
                              waterlily_context_t *context)
 {
-    context->window.data.wayland.display = wl_display_connect(nullptr);
-    if (__builtin_expect(context->window.data.wayland.display == nullptr,
-                         false))
+    context->window.data.display = wl_display_connect(nullptr);
+    if (__builtin_expect(context->window.data.display == nullptr, false))
     {
         waterlily_engine_log(ERROR, "Failed to connect to display server.");
         return false;
     }
 
-    context->window.data.wayland.registry =
-        wl_display_get_registry(context->window.data.wayland.display);
+    context->window.data.registry =
+        wl_display_get_registry(context->window.data.display);
     struct wl_registry_listener registryListener = {&global, &globalRemove};
-    (void)wl_registry_add_listener(context->window.data.wayland.registry,
+    (void)wl_registry_add_listener(context->window.data.registry,
                                    &registryListener, context);
-    (void)wl_display_roundtrip(context->window.data.wayland.display);
+    (void)wl_display_roundtrip(context->window.data.display);
 
-    context->window.data.wayland.surface =
-        wl_compositor_create_surface(context->window.data.wayland.compositor);
+    context->window.data.surface =
+        wl_compositor_create_surface(context->window.data.compositor);
     // xdg_wm_base_get_xdg_surface
-    context->window.data.wayland.shellSurface =
+    context->window.data.shellSurface =
         (struct xdg_surface *)wl_proxy_marshal_flags(
-            (struct wl_proxy *)context->window.data.wayland.shell, 2,
+            (struct wl_proxy *)context->window.data.shell, 2,
             &pXDGSurfaceInterface,
-            wl_proxy_get_version(
-                (struct wl_proxy *)context->window.data.wayland.shell),
-            0, nullptr, context->window.data.wayland.surface);
+            wl_proxy_get_version((struct wl_proxy *)context->window.data.shell),
+            0, nullptr, context->window.data.surface);
     struct xdg_surface_listener shellSurfaceListener = {&configure};
     // xdg_surface_add_listener
     (void)wl_proxy_add_listener(
-        (struct wl_proxy *)context->window.data.wayland.shellSurface,
-        (void (**)(void))&shellSurfaceListener,
-        context->window.data.wayland.surface);
+        (struct wl_proxy *)context->window.data.shellSurface,
+        (void (**)(void))&shellSurfaceListener, context->window.data.surface);
     // xdg_surface_get_toplevel
-    context->window.data.wayland.toplevel =
+    context->window.data.toplevel =
         (struct xdg_toplevel *)wl_proxy_marshal_flags(
-            (struct wl_proxy *)context->window.data.wayland.shellSurface, 1,
+            (struct wl_proxy *)context->window.data.shellSurface, 1,
             &pXDGToplevelInterface,
             wl_proxy_get_version(
-                (struct wl_proxy *)context->window.data.wayland.shellSurface),
+                (struct wl_proxy *)context->window.data.shellSurface),
             0, nullptr);
-    struct xdg_toplevel_listener toplevelListener = {&topConfigure, &close,
-                                                     &bounds, &capabilities};
+    struct xdg_toplevel_listener toplevelListener = {
+        &topConfigure, &closeToplevel, &bounds, &capabilities};
     // xdg_toplevel_add_listener
     (void)wl_proxy_add_listener(
-        (struct wl_proxy *)context->window.data.wayland.toplevel,
+        (struct wl_proxy *)context->window.data.toplevel,
         (void (**)(void))&toplevelListener, context);
 
     // xdg_toplevel_set_title
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.wayland.toplevel, 2, nullptr,
-        wl_proxy_get_version(
-            (struct wl_proxy *)context->window.data.wayland.toplevel),
+        (struct wl_proxy *)context->window.data.toplevel, 2, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data.toplevel),
         0, title);
     // xdg_toplevel_set_app_id
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.wayland.toplevel, 3, nullptr,
-        wl_proxy_get_version(
-            (struct wl_proxy *)context->window.data.wayland.toplevel),
+        (struct wl_proxy *)context->window.data.toplevel, 3, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data.toplevel),
         0, title);
     // xdg_toplevel_set_fullscreen
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.wayland.toplevel, 11, nullptr,
-        wl_proxy_get_version(
-            (struct wl_proxy *)context->window.data.wayland.toplevel),
-        0, context->window.data.wayland.output);
+        (struct wl_proxy *)context->window.data.toplevel, 11, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data.toplevel),
+        0, context->window.data.output);
 
     return true;
-}
-
-void waterlily_window_destroy(waterlily_context_t *context)
-{
-    // xdg_toplevel_destroy
-    (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.wayland.toplevel, 0, nullptr,
-        wl_proxy_get_version(
-            (struct wl_proxy *)context->window.data.wayland.toplevel),
-        WL_MARSHAL_FLAG_DESTROY);
-    // xdg_surface_destroy
-    (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.wayland.shellSurface, 0,
-        nullptr,
-        wl_proxy_get_version(
-            (struct wl_proxy *)context->window.data.wayland.shellSurface),
-        WL_MARSHAL_FLAG_DESTROY);
-    // xdg_wm_base_destroy
-    (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.wayland.shell, 0, nullptr,
-        wl_proxy_get_version(
-            (struct wl_proxy *)context->window.data.wayland.shell),
-        WL_MARSHAL_FLAG_DESTROY);
-
-    wl_surface_destroy(context->window.data.wayland.surface);
-    wl_compositor_destroy(context->window.data.wayland.compositor);
-    wl_output_release(context->window.data.wayland.output);
-    wl_registry_destroy(context->window.data.wayland.registry);
-    wl_display_disconnect(context->window.data.wayland.display);
-}
-
-bool waterlily_window_process(waterlily_context_t *context)
-{
-    return wl_display_dispatch(context->window.data.wayland.display) != -1 &&
-           !context->window.close;
 }
 

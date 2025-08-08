@@ -2,8 +2,6 @@
 ## This is the CMake build file for the Waterlily engine. It handles all build 
 ## configuration mechanisms, like selecting a windowing backend or turning on/off flags.
 ##
-## WATERLILY_WAYLAND<ON> - Toggle Wayland (ON) or X11 (OFF) mode.
-##
 ## Copyright (C) 2025 - Israfil Argos
 ##
 ## This program is free software: you can redistribute it and/or modify it under the 
@@ -40,12 +38,6 @@ if(NOT DEFINED CMAKE_BUILD_TYPE)
 endif()
 
 #########################################################################################
-## Options that the user may flip on or off to customize the compilation.
-#########################################################################################
-
-option(WATERLILY_WAYLAND "Toggle Wayland (ON) or X11 (OFF) mode." ON)
-
-#########################################################################################
 ## Source file wrangling and processing.
 #########################################################################################
 
@@ -57,6 +49,10 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Files/Measure.c"
     "${Waterlily_SOURCE_DIR}/Source/Files/Open.c"
     "${Waterlily_SOURCE_DIR}/Source/Files/Read.c"
+    "${Waterlily_SOURCE_DIR}/Source/Input/CreateContext.c"
+    "${Waterlily_SOURCE_DIR}/Source/Input/Destroy.c"
+    "${Waterlily_SOURCE_DIR}/Source/Input/SetKeymap.c"
+    "${Waterlily_SOURCE_DIR}/Source/Input/UpdateModifiers.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Create.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Render.c"
@@ -76,6 +72,7 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/FillInPipeline.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/SetupShaders.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/CreateSurface.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetCapabilities.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetExtent.c"
@@ -86,19 +83,10 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Destroy.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Partition.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Recreate.c"
+    "${Waterlily_SOURCE_DIR}/Source/Window/Create.c"
+    "${Waterlily_SOURCE_DIR}/Source/Window/Destroy.c"
+    "${Waterlily_SOURCE_DIR}/Source/Window/Process.c"
 )
-
-if(WATERLILY_WAYLAND)
-    list(APPEND WATERLILY_SOURCES 
-        "${Waterlily_SOURCE_DIR}/Source/Window/Wayland.c"
-        "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/Wayland.c"
-    )
-else()
-    list(APPEND WATERLILY_SOURCES 
-        "${Waterlily_SOURCE_DIR}/Source/Window/X11.c"
-        "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/X11.c"
-    )
-endif()
 
 foreach(file ${WATERLILY_SOURCES})
     cmake_path(GET file FILENAME FILE_NAME)
@@ -151,21 +139,22 @@ find_package(Vulkan REQUIRED COMPONENTS glslang)
 target_link_libraries("Waterlily" ${Vulkan_LIBRARIES})
 target_include_directories("Waterlily" PUBLIC ${Vulkan_INCLUDE_DIRS})
 
-if(WATERLILY_WAYLAND)
-    include(FindPackageHandleStandardArgs)
-    find_package(PkgConfig REQUIRED)
+include(FindPackageHandleStandardArgs)
+find_package(PkgConfig REQUIRED)
 
-    pkg_check_modules(Wayland_PKG_CONFIG QUIET "wayland-client")
-    find_path(Wayland_INCLUDE_DIRS NAMES "wayland-client.h" HINTS 
-        ${Wayland_PKG_CONFIG_INCLUDE_DIRS})
-    find_library(Wayland_LIBRARIES NAMES "wayland-client" HINTS 
-        ${Wayland_PKG_CONFIG_LIBRARY_DIRS})
+pkg_check_modules(Wayland_PKG_CONFIG REQUIRED "wayland-client")
+find_path(Wayland_INCLUDE_DIRS NAMES "wayland-client.h" HINTS 
+    ${Wayland_PKG_CONFIG_INCLUDE_DIRS})
+find_library(Wayland_LIBRARIES NAMES "wayland-client" HINTS 
+    ${Wayland_PKG_CONFIG_LIBRARY_DIRS})
 
-    target_link_libraries("Waterlily" ${Wayland_LIBRARIES})
-    target_include_directories("Waterlily" PUBLIC ${Wayland_INCLUDE_DIRS})
-else()
-    find_package(X11 REQUIRED)
-    target_link_libraries("Waterlily" ${X11_LIBRARIES})
-    target_include_directories("Waterlily" PUBLIC ${X11_INCLUDE_DIRS}) 
-endif()
+pkg_check_modules(xkbcommon_PKG_CONFIG REQUIRED "xkbcommon")
+find_path(xkbcommon_INCLUDE_PATH NAMES "xkbcommon" HINTS 
+    ${xkbcommon_PKG_CONFIG_INCLUDE_DIRS})
+find_library(xkbcommon_LIBRARY NAMES "xkbcommon" HINTS 
+    ${xkbcommon_PKG_CONFIG_LIBRARY_DIRS})
+
+target_link_libraries("Waterlily" ${Wayland_LIBRARIES} ${xkbcommon_LIBRARY})
+target_include_directories("Waterlily" PUBLIC ${Wayland_INCLUDE_DIRS} 
+    ${xkbcommon_INCLUDE_PATH})
 
