@@ -10,8 +10,8 @@ bool waterlily_vulkan_createSurface(waterlily_context_t *context)
 {
     VkWaylandSurfaceCreateInfoKHR createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-    createInfo.display = context->window.data[0];
-    createInfo.surface = context->window.data[5]; 
+    createInfo.display = context->window.data.wayland.display;
+    createInfo.surface = context->window.data.wayland.surface; 
 
     VkResult code = vkCreateWaylandSurfaceKHR(
         context->vulkan, &createInfo, nullptr, &context->window.surface);

@@ -12,8 +12,8 @@ bool waterlily_vulkan_createSurface(waterlily_context_t *context)
     VkXlibSurfaceCreateInfoKHR createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
 
-    createInfo.dpy = context->window.data[0];
-    createInfo.window = *(Window *)context->window.data[1];
+    createInfo.dpy = context->window.data.x11.display;
+    createInfo.window = context->window.data.x11.window;
 
     VkResult code = vkCreateXlibSurfaceKHR(context->vulkan, &createInfo,
                                            nullptr, &context->window.surface);

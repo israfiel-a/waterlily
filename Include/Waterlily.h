@@ -46,10 +46,29 @@ typedef struct waterlily_context
         VkExtent2D extent;
         uint32_t scale;
         void *handle;
-        void **data;
-        size_t dataCount;
         bool close;
         bool resized;
+        union
+        {
+            struct
+            {
+                void *display;
+                int screen;
+                int root;
+                unsigned long window;
+            } x11;
+            struct
+            {
+                void *display;
+                void *registry;
+                void *compositor;
+                void *output;
+                void *surface;
+                void *shell;
+                void *shellSurface;
+                void *toplevel;
+            } wayland;
+        } data;
     } window;
     struct
     {
