@@ -2,7 +2,7 @@
 name: Bug Report
 about: Create a report to help the project improve.
 title: ''
-labels: Fix
+labels: Bug
 assignees: israfiel-a
 
 ---
@@ -23,8 +23,8 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
+**Environment**
+ - OS: [e.g. Arch]
  - Version [e.g. 22]
 
 **Additional context**
