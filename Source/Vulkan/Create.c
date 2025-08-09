@@ -1,5 +1,6 @@
 #include <WaterlilyRaw.h>
 
+#if BUILD_TYPE == 0
 static VkBool32 debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *data)
@@ -12,6 +13,7 @@ static VkBool32 debugCallback(
 
     return VK_FALSE;
 }
+#endif
 
 bool waterlily_vulkan_create(waterlily_context_t *context,
                              const char *const *const extensions, size_t count)
