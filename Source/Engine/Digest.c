@@ -1,8 +1,8 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 #include <string.h>
 
-bool waterlily_engine_digest(int argc, const char *const *const argv,
-                             waterlily_context_t *context)
+bool waterlily_engine_digest(waterlily_context_t *context, int argc,
+                             const char *const *const argv)
 {
     const char *const rawExecutable = argv[0];
     context->arguments.requiredDirectory = (char *)rawExecutable;

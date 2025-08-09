@@ -1,4 +1,4 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 
 bool waterlily_vulkan_getCapabilitiesSurface(waterlily_context_t *context)
 {

@@ -1,6 +1,7 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 
-bool waterlily_vulkan_create(waterlily_context_t *context)
+bool waterlily_vulkan_create(waterlily_context_t *context,
+                             const char *const *const extensions, size_t count)
 {
     VkApplicationInfo applicationInfo = {0};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -14,9 +15,8 @@ bool waterlily_vulkan_create(waterlily_context_t *context)
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceInfo.pApplicationInfo = &applicationInfo;
 
-    instanceInfo.enabledExtensionCount =
-        sizeof(waterlily_vulkan_gExtensions) / sizeof(char *);
-    instanceInfo.ppEnabledExtensionNames = waterlily_vulkan_gExtensions;
+    instanceInfo.enabledExtensionCount = count;
+    instanceInfo.ppEnabledExtensionNames = extensions;
 
 #if BUILD_TYPE == 0
     constexpr size_t layerCount = 1;
@@ -31,7 +31,8 @@ bool waterlily_vulkan_create(waterlily_context_t *context)
     instanceInfo.enabledLayerCount = layerCount;
     instanceInfo.ppEnabledLayerNames = layers;
 
-    VkResult result = vkCreateInstance(&instanceInfo, nullptr, &context->vulkan);
+    VkResult result =
+        vkCreateInstance(&instanceInfo, nullptr, &context->vulkan);
     if (result != VK_SUCCESS)
     {
         waterlily_engine_log(

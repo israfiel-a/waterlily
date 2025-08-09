@@ -1,4 +1,4 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 #include <xkbcommon/xkbcommon.h>
 
 bool waterlily_input_createContext(waterlily_context_t *context)

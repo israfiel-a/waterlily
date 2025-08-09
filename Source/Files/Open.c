@@ -1,4 +1,4 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 
 bool waterlily_files_open(const char *const path, FILE **file)
 {

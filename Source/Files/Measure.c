@@ -1,4 +1,4 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 #include <sys/stat.h>
 
 bool waterlily_files_measure(FILE *file, size_t *length)

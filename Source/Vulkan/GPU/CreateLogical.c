@@ -1,6 +1,8 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 
-bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context)
+bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context,
+                                       const char *const *const extensions,
+                                       size_t count)
 {
     float priority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfos[2] = {{0}, {0}};
@@ -26,10 +28,8 @@ bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context)
         context->queues.graphics.index == context->queues.present.index ? 1 : 2;
     logicalDeviceCreateInfo.pEnabledFeatures = &usedFeatures;
 
-    logicalDeviceCreateInfo.enabledExtensionCount =
-        sizeof(waterlily_vulkan_gDeviceExtensions) / sizeof(char *);
-    logicalDeviceCreateInfo.ppEnabledExtensionNames =
-        waterlily_vulkan_gDeviceExtensions;
+    logicalDeviceCreateInfo.enabledExtensionCount = count;
+    logicalDeviceCreateInfo.ppEnabledExtensionNames = extensions;
 
     VkResult code =
         vkCreateDevice(context->gpu.physical, &logicalDeviceCreateInfo, nullptr,

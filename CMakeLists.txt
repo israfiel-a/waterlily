@@ -42,9 +42,11 @@ endif()
 #########################################################################################
 
 set(WATERLILY_SOURCES 
+    "${Waterlily_SOURCE_DIR}/Source/Deinitialize.c"
+    "${Waterlily_SOURCE_DIR}/Source/Initialize.c"
+    "${Waterlily_SOURCE_DIR}/Source/Run.c"
     "${Waterlily_SOURCE_DIR}/Source/Engine/Digest.c"
     "${Waterlily_SOURCE_DIR}/Source/Engine/Log.c"
-    "${Waterlily_SOURCE_DIR}/Source/Engine/Setup.c"
     "${Waterlily_SOURCE_DIR}/Source/Files/Execute.c"
     "${Waterlily_SOURCE_DIR}/Source/Files/Measure.c"
     "${Waterlily_SOURCE_DIR}/Source/Files/Open.c"
@@ -71,7 +73,6 @@ set(WATERLILY_SOURCES
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/CreateLayout.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/CreateRenderpass.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/Destroy.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/FillInPipeline.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/SetupShaders.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/CreateSurface.c"
     "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/Destroy.c"

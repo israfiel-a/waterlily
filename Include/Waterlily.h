@@ -1,10 +1,11 @@
-#ifndef WATERLILY_MAIN_H
-#define WATERLILY_MAIN_H
+#ifndef WATERLILY_H
+#define WATERLILY_H
 
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
 
@@ -109,6 +110,105 @@ typedef struct waterlily_context
     } commandBuffers;
 } waterlily_context_t;
 
+typedef struct waterlily_vulkan_pipeline_info
+{
+    VkPipelineVertexInputStateCreateInfo input;
+    VkPipelineInputAssemblyStateCreateInfo assembly;
+    VkPipelineRasterizationStateCreateInfo rasterizer;
+    VkPipelineMultisampleStateCreateInfo multisampling;
+    VkPipelineColorBlendStateCreateInfo colorBlend;
+    VkPipelineDynamicStateCreateInfo dynamic;
+} waterlily_vulkan_pipeline_info_t;
+
+#define WATERLILY_VULKAN_PIPELINE_INFO_DEFAULT                                   \
+    (waterlily_vulkan_pipeline_info_t)                                           \
+    {                                                                            \
+        .input =                                                                 \
+            {                                                                    \
+                .sType =                                                         \
+                    VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,   \
+                .pNext = nullptr,                                                \
+                .flags = 0,                                                      \
+                .vertexBindingDescriptionCount = 0,                              \
+                .pVertexBindingDescriptions = nullptr,                           \
+                .vertexAttributeDescriptionCount = 0,                            \
+                .pVertexAttributeDescriptions = nullptr,                         \
+            },                                                                   \
+        .assembly =                                                              \
+            {                                                                    \
+                .sType =                                                         \
+                    VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, \
+                .pNext = nullptr,                                                \
+                .flags = 0,                                                      \
+                .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,                 \
+                .primitiveRestartEnable = false,                                 \
+            },                                                                   \
+        .rasterizer =                                                            \
+            {                                                                    \
+                .sType =                                                         \
+                    VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,  \
+                .pNext = nullptr,                                                \
+                .flags = 0,                                                      \
+                .depthClampEnable = false,                                       \
+                .rasterizerDiscardEnable = false,                                \
+                .polygonMode = VK_POLYGON_MODE_FILL,                             \
+                .cullMode = VK_CULL_MODE_BACK_BIT,                               \
+                .frontFace = VK_FRONT_FACE_CLOCKWISE,                            \
+                .depthBiasEnable = false,                                        \
+                .depthBiasConstantFactor = 0.0f,                                 \
+                .depthBiasClamp = 0.0f,                                          \
+                .depthBiasSlopeFactor = 0.0f,                                    \
+                .lineWidth = 1.0f,                                               \
+            },                                                                   \
+        .multisampling =                                                         \
+            {                                                                    \
+                .sType =                                                         \
+                    VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,    \
+                .pNext = nullptr,                                                \
+                .flags = 0,                                                      \
+                .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,                   \
+                .sampleShadingEnable = false,                                    \
+                .minSampleShading = 0,                                           \
+                .pSampleMask = nullptr,                                          \
+                .alphaToCoverageEnable = false,                                  \
+                .alphaToOneEnable = false,                                       \
+            },                                                                   \
+        .colorBlend =                                                            \
+            {                                                                    \
+                .sType =                                                         \
+                    VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,    \
+                .pNext = nullptr,                                                \
+                .flags = 0,                                                      \
+                .logicOpEnable = false,                                          \
+                .logicOp = VK_LOGIC_OP_CLEAR,                                    \
+                .attachmentCount = 1,                                            \
+                .pAttachments = &colorAttachment,                                \
+                .blendConstants = {0.0f, 0.0f, 0.0f, 0.0f},                      \
+            },                                                                   \
+        .dynamic = {                                                             \
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,       \
+            .pNext = nullptr,                                                    \
+            .flags = 0,                                                          \
+            .dynamicStateCount = dynamicStateCount,                              \
+            .pDynamicStates = &dynamicState[0],                                  \
+        }                                                                        \
+    }
+
+typedef struct waterlily_configuration
+{
+    int argc;
+    const char *const *const argv;
+    const char *const title;
+    struct
+    {
+        const char *const *const instanceExtensions;
+        const char *const *const deviceExtensions;
+        size_t instanceExtensionCount;
+        size_t deviceExtensionCount;
+        waterlily_vulkan_pipeline_info_t pipelineInfo;
+    } vulkan;
+} waterlily_configuration_t;
+
 typedef struct waterlily_key_combination
 {
     waterlily_key_t first;
@@ -117,129 +217,12 @@ typedef struct waterlily_key_combination
                  waterlily_context_t *context);
 } waterlily_key_combination_t;
 
-typedef enum waterlily_log_type : uint8_t
-{
-    WATERLILY_LOG_TYPE_INFO,
-    WATERLILY_LOG_TYPE_SUCCESS,
-    WATERLILY_LOG_TYPE_WARNING,
-    WATERLILY_LOG_TYPE_ERROR
-} waterlily_log_type_t;
+bool waterlily_initialize(waterlily_context_t *context,
+                          waterlily_configuration_t *configuration);
+void waterlily_deinitialize(waterlily_context_t *context);
+bool waterlily_run(waterlily_context_t *context,
+                   waterlily_key_combination_t *combinations,
+                   size_t combinationCount);
 
-typedef struct waterlily_log
-{
-    const waterlily_log_type_t type;
-    const size_t line;
-    const char *const filename;
-} waterlily_log_t;
-
-typedef enum waterlily_close_type : uint8_t
-{
-    WATERLILY_CLOSE_GET,
-    WATERLILY_CLOSE_ON,
-    WATERLILY_CLOSE_OFF
-} waterlily_close_type_t;
-
-typedef enum waterlily_resize_type : uint8_t
-{
-    WATERLILY_RESIZE_GET,
-    WATERLILY_RESIZE_YES,
-    WATERLILY_RESIZE_NO
-} waterlily_resize_type_t;
-
-typedef struct waterlily_vulkan_pipeline_info
-{
-    VkPipelineVertexInputStateCreateInfo input;
-    VkPipelineInputAssemblyStateCreateInfo assembly;
-    VkPipelineRasterizationStateCreateInfo rasterizer;
-    VkPipelineMultisampleStateCreateInfo multisampling;
-    VkPipelineColorBlendAttachmentState colorBlendAttachment;
-    VkPipelineColorBlendStateCreateInfo colorBlend;
-    VkDynamicState dynamicState[2];
-    VkPipelineDynamicStateCreateInfo dynamic;
-} waterlily_vulkan_pipeline_info_t;
-
-static const char *const waterlily_vulkan_gExtensions[] = {
-    "VK_KHR_surface",
-    "VK_KHR_wayland_surface",
-};
-
-static const char *const waterlily_vulkan_gDeviceExtensions[] = {
-    "VK_KHR_swapchain",
-};
-
-#define waterlily_engine_log(type, format, ...)                                \
-    waterlily_engine_log(                                                      \
-        &(waterlily_log_t){WATERLILY_LOG_TYPE_##type, __LINE__, FILENAME},     \
-        format __VA_OPT__(, ) __VA_ARGS__)
-
-bool waterlily_engine_digest(int argc, const char *const *const argv,
-                             waterlily_context_t *context);
-bool waterlily_engine_setup(waterlily_context_t *context);
-void(waterlily_engine_log)(const waterlily_log_t *data,
-                           const char *const format, ...);
-
-bool waterlily_window_create(const char *const title,
-                             waterlily_context_t *context);
-void waterlily_window_destroy(waterlily_context_t *context);
-bool waterlily_window_process(waterlily_context_t *context);
-
-bool waterlily_vulkan_create(waterlily_context_t *context);
-void waterlily_vulkan_destroy(waterlily_context_t *context);
-bool waterlily_vulkan_render(waterlily_context_t *context);
-bool waterlily_vulkan_sync(waterlily_context_t *context);
-
-bool waterlily_vulkan_getPhysicalGPU(waterlily_context_t *context);
-bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context);
-void waterlily_vulkan_destroyGPU(waterlily_context_t *context);
-
-bool waterlily_vulkan_createSurface(waterlily_context_t *context);
-bool waterlily_vulkan_getFormatSurface(waterlily_context_t *context);
-bool waterlily_vulkan_getCapabilitiesSurface(waterlily_context_t *context);
-void waterlily_vulkan_getExtentSurface(waterlily_context_t *context);
-bool waterlily_vulkan_getModeSurface(waterlily_context_t *context);
-void waterlily_vulkan_destroySurface(waterlily_context_t *context);
-
-bool waterlily_vulkan_createSwapchain(waterlily_context_t *context);
-bool waterlily_vulkan_partitionSwapchain(waterlily_context_t *context);
-bool waterlily_vulkan_createFramebuffersSwapchain(waterlily_context_t *context);
-void waterlily_vulkan_destroySwapchain(waterlily_context_t *context);
-bool waterlily_vulkan_recreateSwapchain(waterlily_context_t *context);
-
-bool waterlily_vulkan_setupShadersPipeline(
-    waterlily_context_t *context, const char *const *const stages, size_t count,
-    VkPipelineShaderStageCreateInfo *storage);
-void waterlily_vulkan_fillInfoPipeline(waterlily_vulkan_pipeline_info_t *info);
-bool waterlily_vulkan_createLayoutPipeline(waterlily_context_t *context);
-bool waterlily_vulkan_createRenderpassPipeline(waterlily_context_t *context);
-bool waterlily_vulkan_createPipeline(waterlily_context_t *context,
-                                     VkPipelineShaderStageCreateInfo *stages,
-                                     size_t stageCount,
-                                     waterlily_vulkan_pipeline_info_t *info);
-void waterlily_vulkan_destroyPipeline(waterlily_context_t *context);
-
-bool waterlily_vulkan_createBuffersCommand(waterlily_context_t *context);
-bool waterlily_vulkan_createSyncsCommand(waterlily_context_t *context);
-void waterlily_vulkan_beginRenderpassCommand(waterlily_context_t *context);
-bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context);
-void waterlily_vulkan_destroyBuffers(waterlily_context_t *context);
-void waterlily_vulkan_destroySyncs(waterlily_context_t *context);
-
-bool waterlily_files_open(const char *const path, FILE **file);
-static inline void waterlily_files_close(FILE *file) { fclose(file); }
-bool waterlily_files_measure(FILE *file, size_t *length);
-bool waterlily_files_read(FILE *file, size_t count, uint8_t *buffer);
-bool waterlily_files_execute(char *const *args);
-
-bool waterlily_input_createContext(waterlily_context_t *context);
-bool waterlily_input_setKeymap(waterlily_context_t *context,
-                               const char *const string);
-bool waterlily_input_createState(waterlily_context_t *context);
-void waterlily_input_updateModifiers(waterlily_context_t *context,
-                                     uint32_t depressed, uint32_t latched,
-                                     uint32_t locked, uint32_t group);
-void waterlily_input_destroy(waterlily_context_t *context);
-void waterlily_input_checkKeys(waterlily_context_t *context,
-                               waterlily_key_combination_t *keys, size_t count);
-
-#endif // WATERLILY_MAIN_H
+#endif // WATERLILY_H
 

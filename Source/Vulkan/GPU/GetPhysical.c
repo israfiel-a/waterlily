@@ -1,7 +1,8 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 #include <string.h>
 
-static uint32_t scoreDevice(waterlily_context_t *context)
+static uint32_t scoreDevice(waterlily_context_t *context,
+                            const char *const *const extensions, size_t count)
 {
     VkPhysicalDeviceProperties properties;
     VkPhysicalDeviceFeatures features;
@@ -28,25 +29,23 @@ static uint32_t scoreDevice(waterlily_context_t *context)
     uint32_t extensionCount = 0;
     vkEnumerateDeviceExtensionProperties(context->gpu.physical, nullptr,
                                          &extensionCount, nullptr);
-    VkExtensionProperties extensions[extensionCount];
+    VkExtensionProperties foundExtensions[extensionCount];
     vkEnumerateDeviceExtensionProperties(context->gpu.physical, nullptr,
-                                         &extensionCount, extensions);
+                                         &extensionCount, foundExtensions);
 
-    size_t requiredCount =
-        sizeof(waterlily_vulkan_gDeviceExtensions) / sizeof(char *);
+    size_t requiredCount = count;
     size_t foundCount = 0;
     for (size_t i = 0; i < extensionCount; ++i)
     {
         if (foundCount == requiredCount)
             break;
 
-        VkExtensionProperties extension = extensions[i];
+        VkExtensionProperties extension = foundExtensions[i];
         waterlily_engine_log(INFO, "Found extension '%s'.",
                              extension.extensionName);
 
         for (size_t j = 0; j < requiredCount; ++j)
-            if (strcmp(extension.extensionName,
-                       waterlily_vulkan_gDeviceExtensions[j]) == 0)
+            if (strcmp(extension.extensionName, extensions[j]) == 0)
             {
                 foundCount++;
                 waterlily_engine_log(SUCCESS, "Found '%s' device extension.",
@@ -100,7 +99,9 @@ static uint32_t scoreDevice(waterlily_context_t *context)
     return score;
 }
 
-bool waterlily_vulkan_getPhysicalGPU(waterlily_context_t *context)
+bool waterlily_vulkan_getPhysicalGPU(waterlily_context_t *context,
+                                     const char *const *const extensions,
+                                     size_t count)
 {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(context->vulkan, &deviceCount, nullptr);
@@ -111,7 +112,7 @@ bool waterlily_vulkan_getPhysicalGPU(waterlily_context_t *context)
     for (size_t i = 0; i < deviceCount; i++)
     {
         context->gpu.physical = devices[i];
-        uint32_t score = scoreDevice(context);
+        uint32_t score = scoreDevice(context, extensions, count);
         if (score > bestScore)
             bestScore = score;
     }

@@ -1,4 +1,4 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 #include <vulkan/vulkan_wayland.h>
 
 bool waterlily_vulkan_createSurface(waterlily_context_t *context)

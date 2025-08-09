@@ -1,4 +1,4 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 #include <stdlib.h>
 
 bool waterlily_vulkan_partitionSwapchain(waterlily_context_t *context)

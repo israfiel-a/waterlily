@@ -1,4 +1,4 @@
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 
 void waterlily_input_updateModifiers(waterlily_context_t *context,
                                      uint32_t depressed, uint32_t latched,

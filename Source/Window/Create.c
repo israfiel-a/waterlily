@@ -30,7 +30,7 @@
  * <https://www.gnu.org/licenses/>.
  */
 
-#include <Waterlily.h>
+#include <WaterlilyRaw.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
