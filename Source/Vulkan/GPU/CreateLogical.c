@@ -2,7 +2,8 @@
 
 bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context,
                                        const char *const *const extensions,
-                                       size_t count)
+                                       size_t count,
+                                       VkPhysicalDeviceFeatures2 *features)
 {
     float priority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfos[2] = {{0}, {0}};
@@ -16,9 +17,6 @@ bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context,
     queueCreateInfos[1].queueCount = 1;
     queueCreateInfos[1].pQueuePriorities = &priority;
 
-    // We don't need any features at the moment.
-    VkPhysicalDeviceFeatures usedFeatures = {0};
-
     // Layers for logical devices no longer need to be set in newer
     // implementations.
     VkDeviceCreateInfo logicalDeviceCreateInfo = {0};
@@ -26,7 +24,8 @@ bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context,
     logicalDeviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
     logicalDeviceCreateInfo.queueCreateInfoCount =
         context->queues.graphics.index == context->queues.present.index ? 1 : 2;
-    logicalDeviceCreateInfo.pEnabledFeatures = &usedFeatures;
+    logicalDeviceCreateInfo.pEnabledFeatures = nullptr;
+    logicalDeviceCreateInfo.pNext = features;
 
     logicalDeviceCreateInfo.enabledExtensionCount = count;
     logicalDeviceCreateInfo.ppEnabledExtensionNames = extensions;

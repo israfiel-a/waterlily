@@ -1,12 +1,12 @@
 #include <WaterlilyRaw.h>
 
-void waterlily_vulkan_beginRenderpassCommand(waterlily_context_t *context)
+void waterlily_vulkan_beginRenderpassCommand(waterlily_context_t *context,
+                                             uint32_t imageIndex)
 {
     VkRenderPassBeginInfo renderPassInfo = {0};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = context->pipeline.renderpass;
-    renderPassInfo.framebuffer =
-        context->swapchain.framebuffers[context->currentFrame];
+    renderPassInfo.framebuffer = context->swapchain.framebuffers[imageIndex];
     renderPassInfo.renderArea.offset = (VkOffset2D){0, 0};
     renderPassInfo.renderArea.extent = context->window.extent;
 

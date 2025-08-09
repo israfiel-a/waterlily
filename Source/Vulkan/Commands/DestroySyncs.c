@@ -2,6 +2,8 @@
 
 void waterlily_vulkan_destroySyncs(waterlily_context_t *context)
 {
+    vkDestroyFence(context->gpu.logical, context->commandBuffers.presentFence,
+                   nullptr);
     for (size_t i = 0; i < WATERLILY_CONCURRENT_FRAMES; ++i)
     {
         vkDestroySemaphore(context->gpu.logical,

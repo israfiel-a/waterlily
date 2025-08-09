@@ -105,6 +105,7 @@ typedef struct waterlily_context
         VkSemaphore imageAvailableSemphores[WATERLILY_CONCURRENT_FRAMES];
         VkSemaphore renderFinishedSemaphores[WATERLILY_CONCURRENT_FRAMES];
         VkFence fences[WATERLILY_CONCURRENT_FRAMES];
+        VkFence presentFence;
         VkCommandPool pool;
         VkCommandBuffer buffers[WATERLILY_CONCURRENT_FRAMES];
     } commandBuffers;
@@ -206,6 +207,7 @@ typedef struct waterlily_configuration
         size_t instanceExtensionCount;
         size_t deviceExtensionCount;
         waterlily_vulkan_pipeline_info_t pipelineInfo;
+        VkPhysicalDeviceFeatures2 deviceFeatures;
     } vulkan;
 } waterlily_configuration_t;
 

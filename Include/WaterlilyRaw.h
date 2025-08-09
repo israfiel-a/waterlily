@@ -44,7 +44,8 @@ bool waterlily_vulkan_getPhysicalGPU(waterlily_context_t *context,
                                      size_t count);
 bool waterlily_vulkan_createLogicalGPU(waterlily_context_t *context,
                                        const char *const *const extensions,
-                                       size_t count);
+                                       size_t count,
+                                       VkPhysicalDeviceFeatures2 *features);
 void waterlily_vulkan_destroyGPU(waterlily_context_t *context);
 
 bool waterlily_vulkan_createSurface(waterlily_context_t *context);
@@ -73,8 +74,10 @@ void waterlily_vulkan_destroyPipeline(waterlily_context_t *context);
 
 bool waterlily_vulkan_createBuffersCommand(waterlily_context_t *context);
 bool waterlily_vulkan_createSyncsCommand(waterlily_context_t *context);
-void waterlily_vulkan_beginRenderpassCommand(waterlily_context_t *context);
-bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context);
+void waterlily_vulkan_beginRenderpassCommand(waterlily_context_t *context,
+                                             uint32_t imageIndex);
+bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context,
+                                          uint32_t imageIndex);
 void waterlily_vulkan_destroyBuffers(waterlily_context_t *context);
 void waterlily_vulkan_destroySyncs(waterlily_context_t *context);
 

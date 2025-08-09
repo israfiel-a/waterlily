@@ -1,6 +1,7 @@
 #include <WaterlilyRaw.h>
 
-bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context)
+bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context,
+                                          uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo = {0};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -28,7 +29,7 @@ bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context)
     vkCmdSetScissor(context->commandBuffers.buffers[context->currentFrame], 0,
                     1, &scissor);
 
-    waterlily_vulkan_beginRenderpassCommand(context);
+    waterlily_vulkan_beginRenderpassCommand(context, imageIndex);
     vkCmdDraw(context->commandBuffers.buffers[context->currentFrame], 3, 1, 0,
               0);
     vkCmdEndRenderPass(context->commandBuffers.buffers[context->currentFrame]);

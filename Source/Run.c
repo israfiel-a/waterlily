@@ -15,8 +15,7 @@ bool waterlily_run(waterlily_context_t *context,
 
         waterlily_input_checkKeys(context, combinations, combinationCount);
 
-        if (!waterlily_vulkan_render(context) ||
-            !waterlily_vulkan_sync(context))
+        if (!waterlily_vulkan_render(context))
             return false;
     }
     return true;

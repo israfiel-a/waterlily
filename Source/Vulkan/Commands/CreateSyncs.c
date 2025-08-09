@@ -8,9 +8,18 @@ bool waterlily_vulkan_createSyncsCommand(waterlily_context_t *context)
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+    VkResult result = vkCreateFence(context->gpu.logical, &fenceInfo, nullptr,
+                                    &context->commandBuffers.presentFence);
+    if (result != VK_SUCCESS)
+    {
+        waterlily_engine_log(ERROR, "Failed to create present fence, code %d.",
+                             result);
+        return false;
+    }
+
     for (size_t i = 0; i < WATERLILY_CONCURRENT_FRAMES; ++i)
     {
-        VkResult result = vkCreateSemaphore(
+        result = vkCreateSemaphore(
             context->gpu.logical, &semaphoreInfo, nullptr,
             &context->commandBuffers.imageAvailableSemphores[i]);
         if (result != VK_SUCCESS)

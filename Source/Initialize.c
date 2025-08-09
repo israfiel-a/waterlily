@@ -42,7 +42,8 @@ bool waterlily_initialize(waterlily_context_t *context,
 
     if (!waterlily_vulkan_createLogicalGPU(
             context, configuration->vulkan.deviceExtensions,
-            configuration->vulkan.deviceExtensionCount) ||
+            configuration->vulkan.deviceExtensionCount,
+            &configuration->vulkan.deviceFeatures) ||
         !waterlily_vulkan_createSwapchain(context) ||
         !waterlily_vulkan_partitionSwapchain(context))
         return false;
