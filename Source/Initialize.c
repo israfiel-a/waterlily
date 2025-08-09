@@ -40,6 +40,16 @@ bool waterlily_initialize(waterlily_context_t *context,
 
     waterlily_vulkan_getExtentSurface(context);
 
+    configuration->vulkan.deviceFeatures.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    configuration->vulkan.deviceFeatures.pNext = &(
+        VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR){
+        .sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR,
+        .pNext = nullptr,
+        .swapchainMaintenance1 = true,
+    };
+
     if (!waterlily_vulkan_createLogicalGPU(
             context, configuration->vulkan.deviceExtensions,
             configuration->vulkan.deviceExtensionCount,
