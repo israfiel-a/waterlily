@@ -36,6 +36,9 @@ typedef struct waterlily_key
 typedef struct waterlily_context
 {
     VkInstance vulkan;
+#if BUILD_TYPE == 0
+    VkDebugUtilsMessengerEXT debugMessenger;
+#endif
     uint32_t currentFrame;
     struct
     {
