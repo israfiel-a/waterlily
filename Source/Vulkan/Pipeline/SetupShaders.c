@@ -42,8 +42,7 @@ static bool createModule(VkDevice device, const char *const filename,
 }
 
 bool waterlily_vulkan_setupShadersPipeline(
-    waterlily_context_t *context, const char *const *const stages, size_t count,
-    VkPipelineShaderStageCreateInfo *storage)
+    waterlily_context_t *context, VkPipelineShaderStageCreateInfo *storage)
 {
     char *argv[] = {
         "/usr/bin/glslang",
@@ -68,9 +67,14 @@ bool waterlily_vulkan_setupShadersPipeline(
         nullptr,
     };
 
-    for (size_t i = 0; i < count; ++i)
+    const char *const shaders[] = {
+        "default.vert",
+        "default.frag",
+    };
+
+    for (size_t i = 0; i < sizeof(shaders) / sizeof(char*); ++i)
     {
-        const char *const file = stages[i];
+        const char *const file = shaders[i];
         size_t fileLength = strlen(file) + 25;
         char fullPath[fileLength], outputPath[fileLength + 2];
         snprintf(fullPath, fileLength, "Assets/Shaders/Source/%s", file);

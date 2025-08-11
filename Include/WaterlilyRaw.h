@@ -62,8 +62,7 @@ void waterlily_vulkan_destroySwapchain(waterlily_context_t *context);
 bool waterlily_vulkan_recreateSwapchain(waterlily_context_t *context);
 
 bool waterlily_vulkan_setupShadersPipeline(
-    waterlily_context_t *context, const char *const *const stages, size_t count,
-    VkPipelineShaderStageCreateInfo *storage);
+    waterlily_context_t *context, VkPipelineShaderStageCreateInfo *storage);
 bool waterlily_vulkan_createLayoutPipeline(waterlily_context_t *context);
 bool waterlily_vulkan_createRenderpassPipeline(waterlily_context_t *context);
 bool waterlily_vulkan_createPipeline(waterlily_context_t *context,
@@ -86,8 +85,8 @@ static inline void waterlily_files_close(FILE *file) { fclose(file); }
 bool waterlily_files_measure(FILE *file, size_t *length);
 bool waterlily_files_read(FILE *file, size_t count, uint8_t *buffer);
 bool waterlily_files_execute(char *const *args);
-bool waterlily_files_remove(const char* const path);
-bool waterlily_files_exists(const char* const path);
+bool waterlily_files_remove(const char *const path);
+bool waterlily_files_exists(const char *const path);
 
 bool waterlily_input_createContext(waterlily_context_t *context);
 bool waterlily_input_setKeymap(waterlily_context_t *context,

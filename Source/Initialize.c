@@ -92,8 +92,7 @@ bool waterlily_initialize(waterlily_context_t *context,
         return false;
 
     VkPipelineShaderStageCreateInfo stages[2];
-    const char *const stageNames[2] = {"default.vert", "default.frag"};
-    if (!waterlily_vulkan_setupShadersPipeline(context, stageNames, 2, stages))
+    if (!waterlily_vulkan_setupShadersPipeline(context, stages))
         return false;
 
     if (!waterlily_vulkan_createLayoutPipeline(context) ||

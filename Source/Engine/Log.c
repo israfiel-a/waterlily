@@ -22,7 +22,7 @@ void(waterlily_engine_log)(const waterlily_log_t *data,
     (void)fputc('\n', output);
     va_end(args);
 
-    if (data->type >= WATERLILY_LOG_TYPE_WARNING)
+    if (data->type == WATERLILY_LOG_TYPE_ERROR)
         (void)fprintf(output, "\tCurrent ERRNO (may be garbage): %d\n", errno);
 }
 
