@@ -86,6 +86,8 @@ static inline void waterlily_files_close(FILE *file) { fclose(file); }
 bool waterlily_files_measure(FILE *file, size_t *length);
 bool waterlily_files_read(FILE *file, size_t count, uint8_t *buffer);
 bool waterlily_files_execute(char *const *args);
+bool waterlily_files_remove(const char* const path);
+bool waterlily_files_exists(const char* const path);
 
 bool waterlily_input_createContext(waterlily_context_t *context);
 bool waterlily_input_setKeymap(waterlily_context_t *context,

@@ -227,13 +227,19 @@ static void topConfigure(void *d, void *, int32_t w, int32_t h,
     waterlily_engine_log(INFO, "Configure request recieved.");
 
     waterlily_context_t *context = d;
-    context->window.extent.width = (uint32_t)(w * context->window.scale);
-    context->window.extent.height = (uint32_t)(h * context->window.scale);
-    waterlily_vulkan_getExtentSurface(context);
-    context->window.resized = true;
-    waterlily_engine_log(INFO, "Window dimensions adjusted: %dx%d.",
-                         context->window.extent.width,
-                         context->window.extent.height);
+    uint32_t width = w * context->window.scale;
+    uint32_t height = h * context->window.scale;
+    if (context->window.extent.width != width &&
+        context->window.extent.height != height)
+    {
+        context->window.resized = true;
+        context->window.extent.width = width;
+        context->window.extent.height = height;
+        waterlily_vulkan_getExtentSurface(context);
+        waterlily_engine_log(INFO, "Window dimensions adjusted: %dx%d.",
+                             context->window.extent.width,
+                             context->window.extent.height);
+    }
 
     int32_t *i;
     wl_array_for_each(i, s)

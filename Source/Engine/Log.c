@@ -1,4 +1,5 @@
 #include <WaterlilyRaw.h>
+#include <errno.h>
 #include <stdarg.h>
 
 void(waterlily_engine_log)(const waterlily_log_t *data,
@@ -18,7 +19,10 @@ void(waterlily_engine_log)(const waterlily_log_t *data,
     va_list args;
     va_start(args);
     (void)vfprintf(output, format, args);
-    fputc('\n', output);
+    (void)fputc('\n', output);
     va_end(args);
+
+    if (data->type >= WATERLILY_LOG_TYPE_WARNING)
+        (void)fprintf(output, "\tCurrent ERRNO (may be garbage): %d\n", errno);
 }
 
