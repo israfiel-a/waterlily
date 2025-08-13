@@ -39,10 +39,10 @@ else
 endif
 
 install: prep $(LIB)
-	install -d $(DESTDIR)$(PREFIX)/lib/ 
+	install -d $(DESTDIR)$(PREFIX)/lib 
 	install -d $(DESTDIR)$(PREFIX)/include 
-	install -m 644 $(LIB) $(DESTDIR)$(PREFIX)/lib/
-	install -m 644 $(INCLUDE)/Waterlily.h $(DESTDIR)$(PREFIX)/include/
+	install -m 644 $(LIB) $(DESTDIR)$(PREFIX)/lib
+	install -m 644 $(INCLUDE)/Waterlily.h $(DESTDIR)$(PREFIX)/include
 
 prep:
 	@mkdir -p $(BUILD)
