@@ -38,7 +38,7 @@ else
 	$(CC) -c $(CFLAGS) -DFILENAME=\"$(notdir $<)\" $(RELCFLAGS) $(LDFLAGS) $(RELLDFLAGS) -o $@ $<
 endif
 
-install: $(LIB)
+install: prep $(LIB)
 	install -d $(DESTDIR)$(PREFIX)/lib/ 
 	install -d $(DESTDIR)$(PREFIX)/include 
 	install -m 644 $(LIB) $(DESTDIR)$(PREFIX)/lib/
