@@ -14,8 +14,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        build_type: [Release, Debug]
-        compiler: [gcc]
+        build_type: [release, debug]
     steps:
     - uses: actions/checkout@v4
     - name: Prepare Vulkan
@@ -28,7 +27,5 @@ jobs:
       run: |
         sudo apt update
         sudo apt install libwayland-dev glslang-dev libxkbcommon-dev
-    - name: Configure
-      run: cmake -B ${{ github.workspace }}/buildDirectory -DCMAKE_C_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }} -DWATERLILY_UPDATE_MODULES=ON
     - name: Build
-      run: cmake --build ${{ github.workspace }}/buildDirectory --config ${{ matrix.build_type }} --parallel 9
+      run: make ${{ matrix.build_type }}
