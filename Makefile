@@ -24,7 +24,7 @@ RELOBJS=$(addprefix $(RELDIR)/, $(OBJS))
 RELCFLAGS=-march=native -mtune=native -Ofast -flto
 RELLDFLAGS=-Ofast -flto
 
-.PHONY: all clean debug release install
+.PHONY: all clean prep install
 
 all: prep $(LIB) 
 
