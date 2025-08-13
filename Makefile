@@ -1,52 +1,52 @@
+BUILD=build
+SOURCE=Source
+INCLUDE=Include
+ifeq ($(PREFIX),)
+    PREFIX := /usr/local
+endif
+
 CC=gcc 
 AR=ar
-CFLAGS=-Wall -Wextra -Wpedantic -Werror -IInclude -DFILENAME=\"$(notdir $<)\"
+CFLAGS=-Wall -Wextra -Wpedantic -Werror -I$(INCLUDE) 
 LDFLAGS=-nostartfiles
 ARFLAGS=rcs
 
-SRCFILES=Engine.c Files.c Input.c Public.c Vulkan.c Window.c
-SRCS=$(foreach src, $(SRCFILES), $(addprefix Source/, $(src)))
-OBJS=$(SRCS:.c=.o)
-LIB=libWaterlily.a
+SRCFILES=Engine Files Input Public Vulkan Window
+SRCS=$(foreach src, $(SRCFILES), $(addprefix $(SOURCE)/, $(src)).c)
+OBJS=$(foreach obj, $(SRCFILES), $(addprefix $(BUILD)/, $(obj)).o)
+LIB=$(BUILD)/libWaterlily.a
 
-DBGDIR=Debug
-DBGLIB=$(DBGDIR)/$(LIB)
 DBGOBJS=$(addprefix $(DBGDIR)/, $(OBJS))
 DBGCFLAGS=-Og -g3 -ggdb -fanalyzer -fsanitize=leak -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined
 DBGLDFLAGS=-fsanitize=address -fsanitize=undefined
 
-RELDIR=Release
-RELLIB=$(RELDIR)/$(LIB)
 RELOBJS=$(addprefix $(RELDIR)/, $(OBJS))
 RELCFLAGS=-march=native -mtune=native -Ofast -flto
 RELLDFLAGS=-Ofast -flto
 
-.PHONY: all clean debug debug_prep release_prep release install
+.PHONY: all clean debug release install
 
-all: release
+all: prep $(LIB) 
 
-debug: debug_prep $(DBGLIB)
+$(LIB): $(OBJS)
+	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
-$(DBGLIB): $(DBGOBJS)
-	$(AR) $(ARFLAGS) $(DBGLIB) $(DBGOBJS)
+$(BUILD)/%.o: $(SOURCE)/%.c
+ifdef debug
+	$(CC) -c $(CFLAGS) -DFILENAME=\"$(notdir $<)\" $(DBGCFLAGS) $(LDFLAGS) $(DBGLDFLAGS) -o $@ $<
+else
+	$(CC) -c $(CFLAGS) -DFILENAME=\"$(notdir $<)\" $(RELCFLAGS) $(LDFLAGS) $(RELLDFLAGS) -o $@ $<
+endif
 
-$(DBGDIR)/%.o: %.c
-	$(CC) -c $(CFLAGS) $(DBGCFLAGS) $(LDFLAGS) $(DBGLDFLAGS) -o $@ $<
+install: $(LIB)
+	install -d $(DESTDIR)$(PREFIX)/lib/ 
+	install -d $(DESTDIR)$(PREFIX)/include 
+	install -m 644 $(LIB) $(DESTDIR)$(PREFIX)/lib/
+	install -m 644 $(LIB) $(DESTDIR)$(PREFIX)/include/
 
-release: release_prep $(RELLIB)
-
-$(RELLIB): $(RELOBJS)
-	$(AR) $(ARFLAGS) $(RELLIB) $(RELOBJS)
-
-$(RELDIR)/%.o: %.c
-	$(CC) -c $(CFLAGS) $(RELCFLAGS) $(LDFLAGS) $(RELLDFLAGS) -o $@ $<
-
-release_prep:
-	@mkdir -p $(RELDIR)/Source
-
-debug_prep:
-	@mkdir -p $(DBGDIR)/Source 
+prep:
+	@mkdir -p $(BUILD)
 
 clean:
-	rm -rf $(RELDIR) $(DBGDIR)
+	rm -rf $(BUILD)
 
