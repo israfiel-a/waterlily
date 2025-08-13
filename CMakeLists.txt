@@ -42,54 +42,12 @@ endif()
 #########################################################################################
 
 set(WATERLILY_SOURCES 
-    "${Waterlily_SOURCE_DIR}/Source/Deinitialize.c"
-    "${Waterlily_SOURCE_DIR}/Source/Initialize.c"
-    "${Waterlily_SOURCE_DIR}/Source/Run.c"
-    "${Waterlily_SOURCE_DIR}/Source/Engine/Digest.c"
-    "${Waterlily_SOURCE_DIR}/Source/Engine/Log.c"
-    "${Waterlily_SOURCE_DIR}/Source/Files/Execute.c"
-    "${Waterlily_SOURCE_DIR}/Source/Files/Exists.c"
-    "${Waterlily_SOURCE_DIR}/Source/Files/Measure.c"
-    "${Waterlily_SOURCE_DIR}/Source/Files/Open.c"
-    "${Waterlily_SOURCE_DIR}/Source/Files/Read.c"
-    "${Waterlily_SOURCE_DIR}/Source/Files/Remove.c"
-    "${Waterlily_SOURCE_DIR}/Source/Input/CheckKeys.c"
-    "${Waterlily_SOURCE_DIR}/Source/Input/CreateContext.c"
-    "${Waterlily_SOURCE_DIR}/Source/Input/Destroy.c"
-    "${Waterlily_SOURCE_DIR}/Source/Input/SetKeymap.c"
-    "${Waterlily_SOURCE_DIR}/Source/Input/UpdateModifiers.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Create.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Destroy.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Render.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Sync.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/BeginRenderpass.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/CreateBuffers.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/CreateSyncs.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/DestroyBuffers.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/DestroySyncs.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Commands/RecordBuffer.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/GetPhysical.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/CreateLogical.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/GPU/Destroy.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/Create.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/CreateLayout.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/CreateRenderpass.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/Destroy.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Pipeline/SetupShaders.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/CreateSurface.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/Destroy.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetCapabilities.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetExtent.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetFormat.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Surface/GetMode.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Create.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/CreateFramebuffers.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Destroy.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Partition.c"
-    "${Waterlily_SOURCE_DIR}/Source/Vulkan/Swapchain/Recreate.c"
-    "${Waterlily_SOURCE_DIR}/Source/Window/Create.c"
-    "${Waterlily_SOURCE_DIR}/Source/Window/Destroy.c"
-    "${Waterlily_SOURCE_DIR}/Source/Window/Process.c"
+    "${Waterlily_SOURCE_DIR}/Source/Engine.c"
+    "${Waterlily_SOURCE_DIR}/Source/Files.c"
+    "${Waterlily_SOURCE_DIR}/Source/Input.c"
+    "${Waterlily_SOURCE_DIR}/Source/Public.c"
+    "${Waterlily_SOURCE_DIR}/Source/Vulkan.c"
+    "${Waterlily_SOURCE_DIR}/Source/Window.c"
 )
 
 foreach(file ${WATERLILY_SOURCES})
@@ -119,6 +77,7 @@ target_include_directories("Waterlily" PUBLIC "${Waterlily_SOURCE_DIR}/Include")
 #########################################################################################
 
 target_compile_options("Waterlily" PUBLIC -Wall -Wextra -Wpedantic -Werror)
+target_link_options("Waterlily" INTERFACE -nostartfiles)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions("Waterlily" PRIVATE BUILD_TYPE=0)
 

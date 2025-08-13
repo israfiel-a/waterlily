@@ -1,7 +1,94 @@
-#ifndef WATERLILY_RAW_H
-#define WATERLILY_RAW_H
+#ifndef WATERLILY_INTERNAL_H
+#define WATERLILY_INTERNAL_H
 
 #include <Waterlily.h>
+#include <vulkan/vulkan.h>
+#include <wayland-client.h>
+#include <xkbcommon/xkbcommon.h>
+
+typedef struct waterlily_vulkan_queue
+{
+    uint32_t index;
+    VkQueue handle;
+} waterlily_vulkan_queue_t;
+
+typedef struct waterlily_context
+{
+    VkInstance vulkan;
+#if BUILD_TYPE == 0
+    VkDebugUtilsMessengerEXT debugMessenger;
+#endif
+    uint32_t currentFrame;
+    struct
+    {
+        VkPhysicalDevice physical;
+        VkDevice logical;
+    } gpu;
+    struct
+    {
+        bool displayFPS : 1;
+    } arguments;
+    struct
+    {
+        waterlily_vulkan_queue_t graphics;
+        waterlily_vulkan_queue_t present;
+    } queues;
+    struct
+    {
+        VkSurfaceKHR surface;
+        VkPresentModeKHR mode;
+        VkSurfaceFormatKHR format;
+        VkSurfaceCapabilitiesKHR capabilities;
+        VkExtent2D extent;
+        uint32_t scale;
+        void *handle;
+        bool close;
+        bool resized;
+        struct
+        {
+            struct wl_display *display;
+            struct wl_registry *registry;
+            struct wl_compositor *compositor;
+            struct wl_output *output;
+            struct wl_seat *seat;
+            struct wl_keyboard *keyboard;
+            struct wl_surface *surface;
+            void *shell;
+            void *shellSurface;
+            void *toplevel;
+        } data;
+    } window;
+    struct
+    {
+        struct xkb_context *context;
+        struct xkb_state *state;
+        waterlily_key_t down[2];
+        waterlily_key_combination_t *combinations;
+        size_t combinationCount;
+    } input;
+    struct
+    {
+        VkPipeline handle;
+        VkPipelineLayout layout;
+        VkRenderPass renderpass;
+    } pipeline;
+    struct
+    {
+        VkSwapchainKHR handle;
+        VkImageView *images;
+        VkFramebuffer *framebuffers;
+        uint32_t imageCount;
+    } swapchain;
+    struct
+    {
+        VkSemaphore imageAvailableSemphores[WATERLILY_CONCURRENT_FRAMES];
+        VkSemaphore renderFinishedSemaphores[WATERLILY_CONCURRENT_FRAMES];
+        VkFence fences[WATERLILY_CONCURRENT_FRAMES];
+        VkFence presentFence;
+        VkCommandPool pool;
+        VkCommandBuffer buffers[WATERLILY_CONCURRENT_FRAMES];
+    } commandBuffers;
+} waterlily_context_t;
 
 typedef enum waterlily_log_type : uint8_t
 {
@@ -18,15 +105,23 @@ typedef struct waterlily_log
     const char *const filename;
 } waterlily_log_t;
 
+typedef struct waterlily_configuration
+{
+    char *title;
+} waterlily_configuration_t;
+
 #define waterlily_engine_log(type, format, ...)                                \
     waterlily_engine_log(                                                      \
         &(waterlily_log_t){WATERLILY_LOG_TYPE_##type, __LINE__, FILENAME},     \
         format __VA_OPT__(, ) __VA_ARGS__)
 
 bool waterlily_engine_digest(waterlily_context_t *context, int argc,
-                             const char *const *const argv);
+                             const char *const *const argv,
+                             char **workingDirectory,
+                             size_t *workingDirectoryLength);
 void(waterlily_engine_log)(const waterlily_log_t *data,
                            const char *const format, ...);
+bool waterlily_engine_configure(waterlily_configuration_t *configuration);
 
 bool waterlily_window_create(const char *const title,
                              waterlily_context_t *context);
@@ -67,8 +162,7 @@ bool waterlily_vulkan_createLayoutPipeline(waterlily_context_t *context);
 bool waterlily_vulkan_createRenderpassPipeline(waterlily_context_t *context);
 bool waterlily_vulkan_createPipeline(waterlily_context_t *context,
                                      VkPipelineShaderStageCreateInfo *stages,
-                                     size_t stageCount,
-                                     waterlily_vulkan_pipeline_info_t *info);
+                                     size_t stageCount);
 void waterlily_vulkan_destroyPipeline(waterlily_context_t *context);
 
 bool waterlily_vulkan_createBuffersCommand(waterlily_context_t *context);
@@ -96,8 +190,7 @@ void waterlily_input_updateModifiers(waterlily_context_t *context,
                                      uint32_t depressed, uint32_t latched,
                                      uint32_t locked, uint32_t group);
 void waterlily_input_destroy(waterlily_context_t *context);
-void waterlily_input_checkKeys(waterlily_context_t *context,
-                               waterlily_key_combination_t *keys, size_t count);
+void waterlily_input_checkKeys(waterlily_context_t *context);
 
-#endif // WATERLILY_RAW_H
+#endif // WATERLILY_INTERNAL_H
 

@@ -30,7 +30,8 @@
  * <https://www.gnu.org/licenses/>.
  */
 
-#include <WaterlilyRaw.h>
+#include "Internal.h"
+
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -446,7 +447,6 @@ void key(void *d, struct wl_keyboard *, uint32_t, uint32_t t, uint32_t k,
         context->input.down[0] = (waterlily_key_t){
             t,
             xkb_state_key_get_one_sym(context->input.state, k + 8),
-            k + 8,
             s,
         };
         return;
@@ -456,7 +456,6 @@ void key(void *d, struct wl_keyboard *, uint32_t, uint32_t t, uint32_t k,
         context->input.down[1] = (waterlily_key_t){
             t,
             xkb_state_key_get_one_sym(context->input.state, k + 8),
-            k + 8,
             s,
         };
         return;
@@ -602,7 +601,42 @@ bool waterlily_window_create(const char *const title,
         (struct wl_proxy *)context->window.data.toplevel, 11, nullptr,
         wl_proxy_get_version((struct wl_proxy *)context->window.data.toplevel),
         0, context->window.data.output);
+    waterlily_engine_log(INFO, "Setup window properly.");
 
     return true;
+}
+
+void waterlily_window_destroy(waterlily_context_t *context)
+{
+    // xdg_toplevel_destroy
+    (void)wl_proxy_marshal_flags(
+        (struct wl_proxy *)context->window.data.toplevel, 0, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data.toplevel),
+        WL_MARSHAL_FLAG_DESTROY);
+    // xdg_surface_destroy
+    (void)wl_proxy_marshal_flags(
+        (struct wl_proxy *)context->window.data.shellSurface, 0, nullptr,
+        wl_proxy_get_version(
+            (struct wl_proxy *)context->window.data.shellSurface),
+        WL_MARSHAL_FLAG_DESTROY);
+    // xdg_wm_base_destroy
+    (void)wl_proxy_marshal_flags(
+        (struct wl_proxy *)context->window.data.shell, 0, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context->window.data.shell),
+        WL_MARSHAL_FLAG_DESTROY);
+
+    wl_surface_destroy(context->window.data.surface);
+    wl_compositor_destroy(context->window.data.compositor);
+    wl_output_release(context->window.data.output);
+    wl_keyboard_release(context->window.data.keyboard);
+    wl_seat_release(context->window.data.seat);
+    wl_registry_destroy(context->window.data.registry);
+    wl_display_disconnect(context->window.data.display);
+}
+
+bool waterlily_window_process(waterlily_context_t *context)
+{
+    return wl_display_dispatch_pending(context->window.data.display) != -1 &&
+           !context->window.close;
 }
 
