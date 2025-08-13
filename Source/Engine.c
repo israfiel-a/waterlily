@@ -4,6 +4,9 @@
 #include <stdarg.h>
 #include <string.h>
 
+#define STRINGIFY2(expr) #expr
+#define STRINGIFY(expr) STRINGIFY2(expr)
+
 void(waterlily_engine_log)(const waterlily_log_t *data,
                            const char *const format, ...)
 {
@@ -60,8 +63,10 @@ bool waterlily_engine_digest(waterlily_context_t *context, int argc,
         }
         else if (strcmp(currentArg, "version") == 0)
         {
-            waterlily_engine_log(INFO,
-                                 "Waterlily version " WATERLILY_VERSION ".");
+            waterlily_engine_log(
+                INFO,
+                "Waterlily version " STRINGIFY(WATERLILY_VERSION_MAJOR) "." STRINGIFY(
+                    WATERLILY_VERSION_MINOR) "." STRINGIFY(WATERLILY_VERSION_PATCH) ".");
             return false;
         }
         else if (strcmp(currentArg, "license") == 0)

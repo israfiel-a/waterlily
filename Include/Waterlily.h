@@ -5,6 +5,10 @@
 #define __need_size_t
 #include <stddef.h>
 
+#define WATERLILY_VERSION_MAJOR 1
+#define WATERLILY_VERSION_MINOR 0
+#define WATERLILY_VERSION_PATCH 0
+
 #define WATERLILY_CONCURRENT_FRAMES 2
 #define WATERLILY_KEY_TIMER_MS 50
 
