@@ -9,7 +9,7 @@ CC=gcc
 AR=ar
 CFLAGS=-Wall -Wextra -Wpedantic -Werror -I$(INCLUDE) 
 LDFLAGS=-nostartfiles
-ARFLAGS=rcs
+ARFLAGS=rcsv
 
 SRCFILES=Engine Files Input Public Vulkan Window
 SRCS=$(foreach src, $(SRCFILES), $(addprefix $(SOURCE)/, $(src)).c)
