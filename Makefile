@@ -1,15 +1,13 @@
-BUILD=build
-SOURCE=Source
-INCLUDE=Include
+BUILD=$(abspath build)
+SOURCE=$(abspath Source)
+INCLUDE=$(abspath Include)
 ifeq ($(PREFIX),)
     PREFIX := /usr/local
 endif
 
-CC=gcc 
-AR=ar
-CFLAGS=-Wall -Wextra -Wpedantic -Werror -I$(INCLUDE) 
+CFLAGS=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE) 
 LDFLAGS=-nostartfiles
-ARFLAGS=rcsv
+ARFLAGS=rcs
 
 SRCFILES=Engine Files Input Public Vulkan Window
 SRCS=$(foreach src, $(SRCFILES), $(addprefix $(SOURCE)/, $(src)).c)
@@ -27,6 +25,12 @@ RELLDFLAGS=-Ofast -flto
 .PHONY: all clean prep install
 
 all: prep $(LIB) 
+
+export_commands: prep
+ifeq (, $(shell which jq))
+	$(error "The JQ JSON utility was not found.")
+endif
+	$(MAKE) --always-make --dry-run | grep -wE 'cc|gcc|clang' | grep -w '\-c' | jq -nR '[inputs|{directory:"$(BUILD)", command:., file:match(" [^ ]+$$").string[1:], output:"$(BUILD)"+match(" [^ ]+$$").string[1+("$(SOURCE)"|length):-2]+".o"}]' > $(BUILD)/compile_commands.json
 
 $(LIB): $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
