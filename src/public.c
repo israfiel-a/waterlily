@@ -1,6 +1,5 @@
-#include "Internal.h"
+#include "internal.h"
 
-#include <Waterlily.h>
 #include <string.h>
 #include <unistd.h>
 

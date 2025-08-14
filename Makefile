@@ -1,6 +1,6 @@
 ###############################################################################
 ## This file provides the Make build script for the Waterlily game engine. It
-## contains logic for cloning dependencies, managing build presets, and
+## contains logic for finding dependencies, managing build presets, and
 ## packaging the library itself.
 ##
 ## Copyright (c) 2025 Israfil Argos
@@ -18,98 +18,145 @@
 ## with this program.  If not, see <https://www.gnu.org/licenses/>.
 ###############################################################################
 
-.PHONY: all clean prep install
+.PHONY: all clean prep install export_commands
 
 ###############################################################################
-## Figure out the directory structure of the project build.
+## Utility functions/macros to simplify common tasks.
 ###############################################################################
 
-ifeq ($(BUILD),)
-BUILD:=$(abspath build)
-else
-BUILD:=$(abspath $(BUILD))
-endif
+define find_software
+	echo "Finding $(2) at $(1)"
+	$(if $(filter $(shell command -v $(1)),$(1)),echo "Found $(2).",$\
+		$(error "Failed to find $(2)"))
+endef
 
-ifeq ($(PREFIX),)
-PREFIX:=/usr/local
-else
-PREFIX:=$(abspath $(PREFIX))
-endif
+define create_customizable
+	$(1):=$(if $(filter $($(1)),),$(abspath $($(1))),$(abspath $(2)))
+endef
 
-SOURCE=$(abspath Source)
-INCLUDE=$(abspath Include)
+define find_pkg 
+	$(if $(filter 0,$(shell $(PKG_CONFIG) --exists $(1); echo $$?)),,$\
+		$(error "Unable to find $(1).pc"))
+	CFLAG+=$(shell $(PKG_CONFIG) --cflags $(1))
+endef
+
+###############################################################################
+## Figure out the directory and dependency structure of the project build.
+###############################################################################
+
+$(eval $(call create_customizable,BUILD,build))
+$(eval $(call create_customizable,PREFIX,/usr))
+
+$(eval $(call create_customizable,MKDIR,/usr/bin/mkdir))
+$(eval $(call create_customizable,CC,/usr/bin/cc))
+$(eval $(call create_customizable,AR,/usr/bin/ar))
+$(eval $(call create_customizable,RM,/usr/bin/rm))
+$(eval $(call create_customizable,GREP,/usr/bin/grep))
+$(eval $(call create_customizable,INSTALL,/usr/bin/install))
+$(eval $(call create_customizable,PKG_CONFIG,/usr/bin/pkg-config))
+$(eval $(call create_customizable,JQ,/usr/bin/jq))
+
+SOURCE:=$(abspath src)
+INCLUDE:=$(abspath include)
+
+PUBLIC_DIR=$(PREFIX)/include/waterlily
+LIB_DIR=$(PREFIX)/lib
+CONFIG_DIR=$(PREFIX)/share/pkgconfig
+DEPENDENCIES=vulkan wayland-client xkbcommon
 
 ###############################################################################
 ## Set up the flags we're going to use in all compilations.
 ###############################################################################
 
-CFLAGS=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE) 
-DBGCFLAGS=-Og -g3 -ggdb -fanalyzer -fsanitize=leak -fsanitize=address$\ 
-	-fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined
-RELCFLAGS=-march=native -mtune=native -Ofast -flto
+CFLAGS:=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE)
+CFLAGS+=$(if $(strip $(DEBUG)),-Og -g3 -ggdb -fanalyzer -fsanitize=leak $\
+			-fsanitize=address -fsanitize=pointer-compare $\
+			-fsanitize=pointer-subtract -fsanitize=undefined,-march=native $\
+			-mtune=native -Ofast -flto)
 
-LDFLAGS=-nostartfiles
-DBGLDFLAGS=-fsanitize=address -fsanitize=undefined
-RELLDFLAGS=-Ofast -flto
-
-ARFLAGS=rcs
-DBGARFLAGS=v
-RELARFLAGS=
+ARFLAGS:=rcs
+DBGARFLAGS:=v
+RELARFLAGS:=
 
 ###############################################################################
 ## Define the project's output files.
 ###############################################################################
 
-OBJECTS=Engine.o Files.o Input.o Public.o Vulkan.o Window.o
-OUTPUTS=$(foreach obj, $(OBJECTS), $(addprefix $(BUILD)/, $(obj)))
-LIBRARY=$(BUILD)/libWaterlily.a
+OBJECTS:=engine.o files.o input.o public.o vulkan.o window.o
+OUTPUTS:=$(foreach obj, $(OBJECTS), $(addprefix $(BUILD)/, $(obj)))
+
+LIBRARY_NAME:=libwaterlily.a
+CONFIG_NAME:=waterlily.pc
+PUBLIC_NAME:=waterlily.h
+INTERNAL_NAME:=internal.h
+
+LIBRARY:=$(BUILD)/$(LIBRARY_NAME)
+CONFIG:=$(BUILD)/$(CONFIG_NAME)
+PUBLIC:=$(INCLUDE)/$(PUBLIC_NAME)
+INTERNAL:=$(SOURCE)/$(INTERNAL_NAME)
 
 ###############################################################################
-## Define the project's various non-build tasks.
+## Define the project's setup tasks.
 ###############################################################################
 
-EXPORT_COMMAND:=grep -wE '$(CC)'$\
-	| grep -w '\-c'$\
-	| jq -nR '[inputs|{directory:"$(BUILD)",$\
+EXPORT_COMMAND:=$(GREP) -wE '$(CC)'$\
+	| $(GREP) -w '\-c'$\
+	| $(JQ) -nR '[inputs|{directory:"$(BUILD)",$\
 		command:.,$\
 		file:match(" [^ ]+$$").string[1:],$\
 		output:"$(BUILD)"+match(" [^ ]+$$").$\
 			string[1+("$(SOURCE)"|length):-2]+".o"}]'$\
 	> $(BUILD)/compile_commands.json
 
-all: prep $(LIBRARY) 
+all: $(LIBRARY) 
 
 prep:
-	@mkdir -p $(BUILD)
+	$(call find_software,$(CC),Compiler)
 
-install: all 
-	install -d $(DESTDIR)$(PREFIX)/lib 
-	install -d $(DESTDIR)$(PREFIX)/include 
-	install -m 644 $(LIBRARY) $(DESTDIR)$(PREFIX)/lib
-	install -m 644 $(INCLUDE)/Waterlily.h $(DESTDIR)$(PREFIX)/include
+	$(call find_software,$(PKG_CONFIG),PkgConfig)
+	$(foreach dep, $(DEPENDENCIES), $(eval $(call find_pkg,$(dep))))
 
 clean:
-	rm -rf $(BUILD)
+	$(call find_software,$(RM),Remover)
+	$(RM) -rf $(BUILD)
 
-export_commands: prep
-ifeq (, $(shell which jq))
-	$(error "The JQ JSON utility was not found.")
-endif
+export_commands: | $(BUILD) 
+	$(call find_software,$(JQ),JQ)
+	$(call find_software,$(GREP),Grep)
 	$(MAKE) --always-make --dry-run | $(EXPORT_COMMAND) 
 
 ###############################################################################
 ## Define the project's build tasks.
 ###############################################################################
 
-$(LIBRARY): $(OUTPUTS) $(INCLUDE)/Waterlily.h
+$(LIBRARY): $(OUTPUTS) $(PUBLIC) 
+	$(call find_software,$(AR),Archiver)
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OUTPUTS)
 
-$(BUILD)/%.o: $(SOURCE)/%.c $(SOURCE)/Internal.h
-ifdef debug
-	$(CC) -c $(CFLAGS) -DFILENAME=\"$(notdir $<)\" $(DBGCFLAGS) $(LDFLAGS)\
-		$(DBGLDFLAGS) -o $@ $<
-else
-	$(CC) -c $(CFLAGS) -DFILENAME=\"$(notdir $<)\" $(RELCFLAGS) $(LDFLAGS)\
-		$(RELLDFLAGS) -o $@ $<
-endif
+$(BUILD)/%.o: $(SOURCE)/%.c $(INTERNAL) | $(BUILD) prep
+	$(CC) -c $(CFLAGS) -DFILENAME=\"$(notdir $<)\" -o $@ $<
+
+$(BUILD):
+	$(call find_software,$(MKDIR),MKDir)
+	$(MKDIR) -p $(BUILD)
+
+###############################################################################
+## Define the project's installation tasks.
+###############################################################################
+
+install: $(LIBRARY) $(CONFIG) 
+	$(call find_software,$(INSTALL),Installer)
+	$(INSTALL) -m 644 -D $(LIBRARY) $(DESTDIR)$(LIB_DIR)/$(LIBRARY_NAME)
+	$(INSTALL) -m 644 -D $(PUBLIC) $(DESTDIR)$(PUBLIC_DIR)/$(PUBLIC_NAME)
+	$(INSTALL) -m 644 -D $(CONFIG) $(DESTDIR)$(CONFIG_DIR)/$(CONFIG_NAME)
+
+$(CONFIG): | $(BUILD)
+	$(file > $(CONFIG))
+	$(file >> $(CONFIG),Name: Waterlily)
+	$(file >> $(CONFIG),Description: A C library for creating RPG games.)
+	$(file >> $(CONFIG),URL: https://github.com/israfiel-a/waterlily.git)
+	$(file >> $(CONFIG),Version: 1.0.0)
+	$(file >> $(CONFIG),Requires: $(DEPENDENCIES))
+	$(file >> $(CONFIG),Cflags: -I$(PUBLIC_DIR))
+	$(file >> $(CONFIG),Libs: -L$(LIB_DIR) -lwaterlily)
 

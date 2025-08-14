@@ -1,4 +1,4 @@
-#include "Internal.h"
+#include "internal.h"
 
 #include <errno.h>
 #include <stdarg.h>
@@ -55,18 +55,9 @@ bool waterlily_engine_digest(waterlily_context_t *context, int argc,
         {
             waterlily_engine_log(
                 INFO, "Usage: app [OPTIONS]\nOptions:\n\t--help: Display this "
-                      "help message and exit.\n\t--version: Display engine "
-                      "version information and exit.\n\t--license: Display "
-                      "licensing information and exit.\n\n\t--fps: Display an "
-                      "FPS counter once in-game.");
-            return false;
-        }
-        else if (strcmp(currentArg, "version") == 0)
-        {
-            waterlily_engine_log(
-                INFO,
-                "Waterlily version " STRINGIFY(WATERLILY_VERSION_MAJOR) "." STRINGIFY(
-                    WATERLILY_VERSION_MINOR) "." STRINGIFY(WATERLILY_VERSION_PATCH) ".");
+                      "help message and exit.\n\t--license: Display licensing "
+                      "information and exit.\n\n\t--fps: Display an FPS "
+                      "counter once in-game.");
             return false;
         }
         else if (strcmp(currentArg, "license") == 0)

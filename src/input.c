@@ -1,4 +1,4 @@
-#include "Internal.h"
+#include "internal.h"
 
 void waterlily_input_checkKeys(waterlily_context_t *context)
 {

@@ -30,7 +30,7 @@
  * <https://www.gnu.org/licenses/>.
  */
 
-#include "Internal.h"
+#include "internal.h"
 
 #include <string.h>
 #include <sys/mman.h>

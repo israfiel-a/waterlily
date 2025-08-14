@@ -1,7 +1,7 @@
 #ifndef WATERLILY_INTERNAL_H
 #define WATERLILY_INTERNAL_H
 
-#include <Waterlily.h>
+#include <waterlily.h>
 #include <vulkan/vulkan.h>
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
