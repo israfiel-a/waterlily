@@ -38,7 +38,7 @@ define setup_vulkan_sdk
 endef
 
 define find_library
-	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),$(call setup_vulkan_sdk,$(1),),)$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
+	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),$(call setup_vulkan_sdk,$(1)),),)$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
 endef
 
 define find_pkg 
