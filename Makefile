@@ -34,10 +34,15 @@ define create_customizable
 	$(1):=$(if $(filter $($(1)),),$(abspath $($(1))),$(abspath $(2)))
 endef
 
+define find_library
+	$(if $(filter $(shell $(LDCONFIG) -p | $(GREP) lib$(1)),$(1),,$(error "Unable to find $(1)"))) 
+	FOUND_LIBS+= -l$(1)
+endef
+
 define find_pkg 
 	$(if $(filter 0,$(shell $(PKG_CONFIG) --exists $(1); echo $$?)),,$\
-		$(error "Unable to find $(1).pc"))
-	CFLAG+=$(shell $(PKG_CONFIG) --cflags $(1))
+		$(call find_library,$(1)))
+	CFLAGS+=$(shell $(PKG_CONFIG) --cflags $(1))
 endef
 
 ###############################################################################
@@ -54,6 +59,7 @@ $(eval $(call create_customizable,RM,/usr/bin/rm))
 $(eval $(call create_customizable,GREP,/usr/bin/grep))
 $(eval $(call create_customizable,INSTALL,/usr/bin/install))
 $(eval $(call create_customizable,PKG_CONFIG,/usr/bin/pkg-config))
+$(eval $(call create_customizable,LDCONFIG,/usr/bin/ldconfig))
 $(eval $(call create_customizable,JQ,/usr/bin/jq))
 
 SOURCE:=$(abspath src)
@@ -111,6 +117,8 @@ all: $(LIBRARY) | $(if $(strip $(EXPORT_COMMAND_RUN)),,$(DEBUG_PREREQUISITE))
 
 prep:
 	$(call find_software,$(CC),Compiler)
+	$(call find_software,$(GREP),Grep)
+	$(call find_software,$(LDCONFIG),LDConfig)
 
 	$(call find_software,$(PKG_CONFIG),PkgConfig)
 	$(foreach dep, $(DEPENDENCIES), $(eval $(call find_pkg,$(dep))))
@@ -157,5 +165,5 @@ $(CONFIG): | $(BUILD)
 	$(file >> $(CONFIG),Version: 1.0.0)
 	$(file >> $(CONFIG),Requires: $(DEPENDENCIES))
 	$(file >> $(CONFIG),Cflags: -I$(PUBLIC_DIR))
-	$(file >> $(CONFIG),Libs: -L$(LIB_DIR) -lwaterlily )
+	$(file >> $(CONFIG),Libs: -L$(LIB_DIR) -lwaterlily$(FOUND_LIBS))
 
