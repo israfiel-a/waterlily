@@ -31,8 +31,7 @@ define find_software
 endef
 
 define find_library
-	SDK_VULKAN_NAME:="libvulkan.so"
-	SDK_VULKAN_COMMAND=$(shell find $(VULKAN_SDK)/lib -maxdepth 1 -type f -name $(SDK_VULKAN_NAME))
+	SDK_VULKAN_COMMAND=$(shell find $(VULKAN_SDK)/lib -maxdepth 1 -type f -name "libvulkan.so")
 	$(if $(filter "vulkan",$(1)),$(if $(strip $(VULKAN_SDK)),$\
 		$(if $(SDK_VULKAN_COMMAND),FOUND_LIBS+= -L$(VULKAN_SDK)/lib,)),$\
 		$(if $(filter $(shell ldconfig -p | grep lib$(1)),$(1)),,$\
