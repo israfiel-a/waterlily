@@ -108,7 +108,8 @@ EXPORT_COMMAND:=$(GREP) -wE '$(CC)'$\
 			string[1+("$(SOURCE)"|length):-2]+".o"}]'$\
 	> $(BUILD)/compile_commands.json
 
-all: $(LIBRARY) 
+DEBUG_PREREQUISITE:=$(if $(strip DEBUG),export_commands,) 
+all: $(LIBRARY) | $(if $(strip $(EXPORT_COMMAND_RUN)),,$(DEBUG_PREREQUISITE)) 
 
 prep:
 	$(call find_software,$(CC),Compiler)
@@ -123,7 +124,7 @@ clean:
 export_commands: | $(BUILD) 
 	$(call find_software,$(JQ),JQ)
 	$(call find_software,$(GREP),Grep)
-	$(MAKE) --always-make --dry-run | $(EXPORT_COMMAND) 
+	$(MAKE) EXPORT_COMMAND_RUN=on --always-make --dry-run | $(EXPORT_COMMAND) 
 
 ###############################################################################
 ## Define the project's build tasks.
