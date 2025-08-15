@@ -70,7 +70,7 @@ CFLAGS+=$(if $(strip $(DEBUG)),-Og -g3 -ggdb -fanalyzer -fsanitize=leak $\
 			-fsanitize=pointer-subtract -fsanitize=undefined,-march=native $\
 			-mtune=native -Ofast -flto)
 
-ARFLAGS:=rcs
+ARFLAGS:=qcs
 
 ###############################################################################
 ## Define the project's output files.
