@@ -82,16 +82,25 @@ bool waterlily_engine_digest(waterlily_context_t *context, int argc,
 bool waterlily_engine_configure(waterlily_configuration_t *configuration)
 {
     FILE *file;
-    if (!waterlily_files_open("Assets/engine.waterlily", &file))
+    if (!waterlily_files_open("Assets/engine.wl", &file))
+    {
+        waterlily_files_close(file);
         return false;
+    }
 
     size_t fileSize;
     if (!waterlily_files_measure(file, &fileSize))
+    {
+        waterlily_files_close(file);
         return false;
+    }
 
     char contents[fileSize + 1];
     if (!waterlily_files_read(file, fileSize, (uint8_t *)contents))
+    {
+        waterlily_files_close(file);
         return false;
+    }
     contents[fileSize] = 0;
     waterlily_files_close(file);
 
