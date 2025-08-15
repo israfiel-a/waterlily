@@ -31,8 +31,12 @@ define find_software
 endef
 
 define find_library
-	$(if $(filter $(shell ldconfig -p | grep lib$(1)),$(1)),,$\
-		$(error "Unable to find $(1)")) 
+	SDK_VULKAN_NAME:="libvulkan.so"
+	SDK_VULKAN_COMMAND=$(shell find $(VULKAN_SDK)/lib -maxdepth 1 -type f -name $(SDK_VULKAN_NAME))
+	$(if $(filter "vulkan",$(1)),$(if $(strip $(VULKAN_SDK)),$\
+		$(if $(SDK_VULKAN_COMMAND),FOUND_LIBS+= -L$(VULKAN_SDK)/lib,)),$\
+		$(if $(filter $(shell ldconfig -p | grep lib$(1)),$(1)),,$\
+		$(error "Unable to find $(1)"))) 
 	FOUND_LIBS+= -l$(1)
 endef
 
@@ -128,9 +132,9 @@ $(BUILD):
 ###############################################################################
 
 install: $(LIBRARY) $(CONFIG) 
-	$(INSTALL) -m 644 -D $(LIBRARY) $(DESTDIR)$(LIB_DIR)/$(LIBRARY_NAME)
-	$(INSTALL) -m 644 -D $(PUBLIC) $(DESTDIR)$(PUBLIC_DIR)/$(PUBLIC_NAME)
-	$(INSTALL) -m 644 -D $(CONFIG) $(DESTDIR)$(CONFIG_DIR)/$(CONFIG_NAME)
+	install -m 644 -D $(LIBRARY) $(DESTDIR)$(LIB_DIR)/$(LIBRARY_NAME)
+	install -m 644 -D $(PUBLIC) $(DESTDIR)$(PUBLIC_DIR)/$(PUBLIC_NAME)
+	install -m 644 -D $(CONFIG) $(DESTDIR)$(CONFIG_DIR)/$(CONFIG_NAME)
 
 $(CONFIG): | $(BUILD)
 	$(file > $(CONFIG))
