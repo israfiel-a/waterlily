@@ -38,11 +38,17 @@ define setup_vulkan_sdk
 endef
 
 define find_library
-	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),$(call setup_vulkan_sdk,$(1)),),$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
+	$(if $(findstring $(1),"vulkan"),$\
+		$(if $(strip $(LD_LIBRARY_PATH)),$\
+			$(call setup_vulkan_sdk,$(1)),),$\
+		$(if $(shell ldconfig -p | grep libvulkan),$\
+			FOUND_LIBS+= -l$(1),$\
+			$(error "Failed to find $(1)")))
 endef
 
 define find_pkg 
-	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),CFLAGS+=$(shell pkg-config --cflags $(1)),$\
+	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),$\
+		CFLAGS+=$(shell pkg-config --cflags $(1)),$\
 		$(call find_library,$(1)))
 endef
 
@@ -102,7 +108,7 @@ EXPORT_COMMAND:=grep -wE '$(CC)'$\
 			string[1+("$(SOURCE)"|length):-2]+".o"}]'$\
 	> $(BUILD)/compile_commands.json
 
-all: $(LIBRARY) | $(if $(strip $(EXPORT_COMMAND_RUN)),,export_commands) 
+all: $(LIBRARY) 
 
 prep:
 	$(foreach dep, $(DEPENDENCIES), $(eval $(call find_pkg,$(dep))))
