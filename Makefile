@@ -24,12 +24,6 @@
 ## Utility functions/macros to simplify common tasks.
 ###############################################################################
 
-define find_software
-	echo "Finding $(2) at $(1)"
-	$(if $(filter $(shell command -v $(1)),$(1)),echo "Found $(2).",$\
-		$(error "Failed to find $(2)"))
-endef
-
 # I hate that this has to exist, but Make is a bitch and all the "better" ways
 # have failed.
 define setup_vulkan_sdk
