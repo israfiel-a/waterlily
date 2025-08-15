@@ -31,7 +31,7 @@ define find_software
 endef
 
 define find_library
-	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),FOUND_LIBS+= -L$(LD_LIBRARY_PATH) -l$(1); CFLAGS+= -I$$(VULKAN_SDK)/include,),$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
+	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),FOUND_LIBS+= -L$(LD_LIBRARY_PATH) -l$(1); FOUND_INCS+= -I$$(VULKAN_SDK)/include,),$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
 endef
 
 define find_pkg 
@@ -57,7 +57,7 @@ DEPENDENCIES=vulkan wayland-client xkbcommon
 ## Set up the flags we're going to use in all compilations.
 ###############################################################################
 
-CFLAGS:=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE)
+CFLAGS+=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE)
 CFLAGS+=$(if $(strip $(DEBUG)),-Og -g3 -ggdb -fanalyzer -fsanitize=leak $\
 			-fsanitize=address -fsanitize=pointer-compare $\
 			-fsanitize=pointer-subtract -fsanitize=undefined,-march=native $\
@@ -114,7 +114,7 @@ $(LIBRARY): $(OUTPUTS) $(PUBLIC)
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OUTPUTS)
 
 $(BUILD)/%.o: $(SOURCE)/%.c $(INTERNAL) | $(BUILD) prep
-	$(CC) -c $(CFLAGS) -DFILENAME=\"$(notdir $<)\" -o $@ $<
+	$(CC) -c $(CFLAGS) $(FOUND_INCS) -DFILENAME=\"$(notdir $<)\" -o $@ $<
 
 $(BUILD):
 	mkdir -p $(BUILD)
@@ -135,6 +135,6 @@ $(CONFIG): | $(BUILD)
 	$(file >> $(CONFIG),URL: https://github.com/israfiel-a/waterlily.git)
 	$(file >> $(CONFIG),Version: 1.0.0)
 	$(file >> $(CONFIG),Requires: $(DEPENDENCIES))
-	$(file >> $(CONFIG),Cflags: -I$(PUBLIC_DIR))
+	$(file >> $(CONFIG),Cflags: -I$(PUBLIC_DIR)$(FOUND_INCS))
 	$(file >> $(CONFIG),Libs: -L$(LIB_DIR) -lwaterlily$(FOUND_LIBS))
 
