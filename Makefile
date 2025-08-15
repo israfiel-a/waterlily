@@ -31,12 +31,7 @@ define find_software
 endef
 
 define find_library
-	SDK_VULKAN_COMMAND=$(shell find $(VULKAN_SDK)/lib -maxdepth 1 -type f -name "libvulkan.so")
-	$(if $(filter "vulkan",$(1)),$(if $(strip $(VULKAN_SDK)),$\
-		$(if $(SDK_VULKAN_COMMAND),FOUND_LIBS+= -L$(VULKAN_SDK)/lib,)),$\
-		$(if $(filter $(shell ldconfig -p | grep lib$(1)),$(1)),,$\
-		$(error "Unable to find $(1)"))) 
-	FOUND_LIBS+= -l$(1)
+	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),FOUND_LIBS+= -L$(LD_LIBRARY_PATH),),$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
 endef
 
 define find_pkg 
@@ -101,8 +96,7 @@ EXPORT_COMMAND:=grep -wE '$(CC)'$\
 			string[1+("$(SOURCE)"|length):-2]+".o"}]'$\
 	> $(BUILD)/compile_commands.json
 
-DEBUG_PREREQUISITE:=$(if $(strip DEBUG),export_commands,) 
-all: $(LIBRARY) | $(if $(strip $(EXPORT_COMMAND_RUN)),,$(DEBUG_PREREQUISITE)) 
+all: $(LIBRARY) | $(if $(strip $(EXPORT_COMMAND_RUN)),,export_commands) 
 
 prep:
 	$(foreach dep, $(DEPENDENCIES), $(eval $(call find_pkg,$(dep))))
