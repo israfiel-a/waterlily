@@ -30,38 +30,24 @@ define find_software
 		$(error "Failed to find $(2)"))
 endef
 
-define create_customizable
-	$(1):=$(if $(filter $($(1)),),$(abspath $($(1))),$(abspath $(2)))
-endef
-
 define find_library
-	$(if $(filter $(shell $(LDCONFIG) -p | $(GREP) lib$(1)),$(1),,$(error "Unable to find $(1)"))) 
+	$(if $(filter $(shell ldconfig -p | grep lib$(1)),$(1),,$\
+		$(error "Unable to find $(1)"))) 
 	FOUND_LIBS+= -l$(1)
 endef
 
 define find_pkg 
-	$(if $(filter 0,$(shell $(PKG_CONFIG) --exists $(1); echo $$?)),,$\
+	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),,$\
 		$(call find_library,$(1)))
-	CFLAGS+=$(shell $(PKG_CONFIG) --cflags $(1))
+	CFLAGS+=$(shell pkg-config --cflags $(1))
 endef
 
 ###############################################################################
 ## Figure out the directory and dependency structure of the project build.
 ###############################################################################
 
-$(eval $(call create_customizable,BUILD,build))
-$(eval $(call create_customizable,PREFIX,/usr))
-
-$(eval $(call create_customizable,MKDIR,/usr/bin/mkdir))
-$(eval $(call create_customizable,CC,/usr/bin/cc))
-$(eval $(call create_customizable,AR,/usr/bin/ar))
-$(eval $(call create_customizable,RM,/usr/bin/rm))
-$(eval $(call create_customizable,GREP,/usr/bin/grep))
-$(eval $(call create_customizable,INSTALL,/usr/bin/install))
-$(eval $(call create_customizable,PKG_CONFIG,/usr/bin/pkg-config))
-$(eval $(call create_customizable,LDCONFIG,/usr/bin/ldconfig))
-$(eval $(call create_customizable,JQ,/usr/bin/jq))
-
+BUILD:=$(abspath build)
+PREFIX=/usr
 SOURCE:=$(abspath src)
 INCLUDE:=$(abspath include)
 
@@ -103,9 +89,9 @@ INTERNAL:=$(SOURCE)/$(INTERNAL_NAME)
 ## Define the project's setup tasks.
 ###############################################################################
 
-EXPORT_COMMAND:=$(GREP) -wE '$(CC)'$\
-	| $(GREP) -w '\-c'$\
-	| $(JQ) -nR '[inputs|{directory:"$(BUILD)",$\
+EXPORT_COMMAND:=grep -wE '$(CC)'$\
+	| grep -w '\-c'$\
+	| jq -nR '[inputs|{directory:"$(BUILD)",$\
 		command:.,$\
 		file:match(" [^ ]+$$").string[1:],$\
 		output:"$(BUILD)"+match(" [^ ]+$$").$\
@@ -116,20 +102,12 @@ DEBUG_PREREQUISITE:=$(if $(strip DEBUG),export_commands,)
 all: $(LIBRARY) | $(if $(strip $(EXPORT_COMMAND_RUN)),,$(DEBUG_PREREQUISITE)) 
 
 prep:
-	$(call find_software,$(CC),Compiler)
-	$(call find_software,$(GREP),Grep)
-	$(call find_software,$(LDCONFIG),LDConfig)
-
-	$(call find_software,$(PKG_CONFIG),PkgConfig)
 	$(foreach dep, $(DEPENDENCIES), $(eval $(call find_pkg,$(dep))))
 
 clean:
-	$(call find_software,$(RM),Remover)
 	$(RM) -rf $(BUILD)
 
 export_commands: | $(BUILD) 
-	$(call find_software,$(JQ),JQ)
-	$(call find_software,$(GREP),Grep)
 	$(MAKE) EXPORT_COMMAND_RUN=on --always-make --dry-run | $(EXPORT_COMMAND) 
 
 ###############################################################################
@@ -137,22 +115,19 @@ export_commands: | $(BUILD)
 ###############################################################################
 
 $(LIBRARY): $(OUTPUTS) $(PUBLIC) 
-	$(call find_software,$(AR),Archiver)
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OUTPUTS)
 
 $(BUILD)/%.o: $(SOURCE)/%.c $(INTERNAL) | $(BUILD) prep
 	$(CC) -c $(CFLAGS) -DFILENAME=\"$(notdir $<)\" -o $@ $<
 
 $(BUILD):
-	$(call find_software,$(MKDIR),MKDir)
-	$(MKDIR) -p $(BUILD)
+	mkdir -p $(BUILD)
 
 ###############################################################################
 ## Define the project's installation tasks.
 ###############################################################################
 
 install: $(LIBRARY) $(CONFIG) 
-	$(call find_software,$(INSTALL),Installer)
 	$(INSTALL) -m 644 -D $(LIBRARY) $(DESTDIR)$(LIB_DIR)/$(LIBRARY_NAME)
 	$(INSTALL) -m 644 -D $(PUBLIC) $(DESTDIR)$(PUBLIC_DIR)/$(PUBLIC_NAME)
 	$(INSTALL) -m 644 -D $(CONFIG) $(DESTDIR)$(CONFIG_DIR)/$(CONFIG_NAME)
