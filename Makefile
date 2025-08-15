@@ -30,8 +30,15 @@ define find_software
 		$(error "Failed to find $(2)"))
 endef
 
+# I hate that this has to exist, but Make is a bitch and all the "better" ways
+# have failed.
+define setup_vulkan_sdk
+	FOUND_LIBS+= -L$(LD_LIBRARY_PATH:-=) -l$(1)
+	FOUND_INCS+= -I$(VULKAN_SDK)/include
+endef
+
 define find_library
-	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),FOUND_LIBS+= -L$(LD_LIBRARY_PATH) -l$(1); FOUND_INCS+= -I$$(VULKAN_SDK)/include,),$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
+	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),$(call setup_vulkan_sdk,$(1),),)$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
 endef
 
 define find_pkg 
@@ -98,7 +105,6 @@ EXPORT_COMMAND:=grep -wE '$(CC)'$\
 all: $(LIBRARY) | $(if $(strip $(EXPORT_COMMAND_RUN)),,export_commands) 
 
 prep:
-	echo "$(LD_LIBRARY_PATH)"
 	$(foreach dep, $(DEPENDENCIES), $(eval $(call find_pkg,$(dep))))
 
 clean:
