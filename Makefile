@@ -75,8 +75,6 @@ CFLAGS+=$(if $(strip $(DEBUG)),-Og -g3 -ggdb -fanalyzer -fsanitize=leak $\
 			-mtune=native -Ofast -flto)
 
 ARFLAGS:=rcs
-DBGARFLAGS:=v
-RELARFLAGS:=
 
 ###############################################################################
 ## Define the project's output files.
@@ -159,5 +157,5 @@ $(CONFIG): | $(BUILD)
 	$(file >> $(CONFIG),Version: 1.0.0)
 	$(file >> $(CONFIG),Requires: $(DEPENDENCIES))
 	$(file >> $(CONFIG),Cflags: -I$(PUBLIC_DIR))
-	$(file >> $(CONFIG),Libs: -L$(LIB_DIR) -lwaterlily)
+	$(file >> $(CONFIG),Libs: -L$(LIB_DIR) -lwaterlily )
 
