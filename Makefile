@@ -121,7 +121,7 @@ $(LIBRARY): $(OUTPUTS) $(PUBLIC)
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OUTPUTS)
 
 $(BUILD)/%.o: $(SOURCE)/%.c $(INTERNAL) | $(BUILD) prep
-	$(CC) -c $(CFLAGS) $(FOUND_INCS) -DFILENAME=\"$(notdir $<)\" -o $@ $<
+	$(GCC) -c $(CFLAGS) $(FOUND_INCS) -DFILENAME=\"$(notdir $<)\" -o $@ $<
 
 $(BUILD):
 	mkdir -p $(BUILD)
