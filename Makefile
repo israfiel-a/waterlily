@@ -31,8 +31,8 @@ define find_software
 endef
 
 define find_library
-	$(if $(filter $(shell ldconfig -p | grep lib$(1)),$(1),,$\
-		$(error "Unable to find $(1)"))) 
+	$(if $(filter $(shell ldconfig -p | grep lib$(1)),$(1)),,$\
+		$(error "Unable to find $(1)")) 
 	FOUND_LIBS+= -l$(1)
 endef
 
