@@ -31,13 +31,12 @@ define find_software
 endef
 
 define find_library
-	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),FOUND_LIBS+= -L$(LD_LIBRARY_PATH),),$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
+	$(if $(findstring $(1),"vulkan"),$(if $(strip $(LD_LIBRARY_PATH)),FOUND_LIBS+= -L$(LD_LIBRARY_PATH); CFLAGS+=$$(VULKAN_SDK)/include,),$(if $(shell ldconfig -p | grep libvulkan),FOUND_LIBS+= -l$(1),$(error "Failed to find $(1)")))
 endef
 
 define find_pkg 
-	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),,$\
+	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),CFLAGS+=$(shell pkg-config --cflags $(1)),$\
 		$(call find_library,$(1)))
-	CFLAGS+=$(shell pkg-config --cflags $(1))
 endef
 
 ###############################################################################
