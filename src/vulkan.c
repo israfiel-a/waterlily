@@ -853,14 +853,23 @@ static bool createModule(VkDevice device, const char *const filename,
 {
     FILE *output;
     if (!waterlily_files_open(filename, &output))
+    {
+        waterlily_files_close(output);
         return false;
+    }
 
     size_t fileSize;
     if (!waterlily_files_measure(output, &fileSize))
+    {
+        waterlily_files_close(output);
         return false;
+    }
     char fileContents[fileSize];
     if (!waterlily_files_read(output, fileSize, (uint8_t *)fileContents))
+    {
+        waterlily_files_close(output);
         return false;
+    }
     waterlily_files_close(output);
 
     VkShaderModuleCreateInfo moduleCreateInfo = {0};
