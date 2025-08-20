@@ -164,27 +164,27 @@ typedef struct waterlily_key_combination
                  waterlily_context_t *context);
 } waterlily_key_combination_t;
 
-#define waterlily_entry                                                        \
-    __asm(".global _start\n"                                                     \
-        "_start:\n"                                                            \
-        "xorl %ebp, %ebp\n"                                                    \
-        "movq 0(%rsp), %rdi\n"                                                 \
-        "lea 8(%rsp), %rsi\n"                                                  \
-        "call waterlily_create\n"                                              \
-        "cmp $0, %rdi\n"                                                       \
-        "jne .run\n"                                                           \
-        "movq %rax, %rdi\n"                                                    \
-        "movl $60, %eax\n"                                                     \
-        "syscall\n"                                                            \
-        ".run:\n"                                                              \
-        "movq %rax, %rdi\n"                                                    \
-        "call waterlily_application\n"                                         \
-        "pushq %rdi\n"                                                         \
-        "call waterlily_destroy\n"                                             \
-        "popq %rdi\n"                                                          \
-        "movl $60, %eax\n"                                                     \
-        "syscall");                                                            \
-    int waterlily_application(waterlily_context_t *context)
+#define waterlily_entry(args)                                                  \
+    __asm(".global _start\n"                                                   \
+          "_start:\n"                                                          \
+          "xorl %ebp, %ebp\n"                                                  \
+          "movq 0(%rsp), %rdi\n"                                               \
+          "lea 8(%rsp), %rsi\n"                                                \
+          "call waterlily_create\n"                                            \
+          "cmp $0, %rdi\n"                                                     \
+          "jne .run\n"                                                         \
+          "movq %rax, %rdi\n"                                                  \
+          "movl $60, %eax\n"                                                   \
+          "syscall\n"                                                          \
+          ".run:\n"                                                            \
+          "movq %rax, %rdi\n"                                                  \
+          "call waterlily_application\n"                                       \
+          "pushq %rdi\n"                                                       \
+          "call waterlily_destroy\n"                                           \
+          "popq %rdi\n"                                                        \
+          "movl $60, %eax\n"                                                   \
+          "syscall");                                                          \
+    int waterlily_application(__VA_ARGS__)
 
 bool waterlily_run(waterlily_context_t *context);
 
