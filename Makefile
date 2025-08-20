@@ -120,7 +120,7 @@ export_commands: | $(BUILD)
 $(LIBRARY): $(OUTPUTS) $(PUBLIC) 
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OUTPUTS)
 
-$(BUILD)/%.o: $(SOURCE)/%.c $(INTERNAL) | $(BUILD) prep
+$(BUILD)/%.o: $(SOURCE)/%.c $(INTERNAL) $(PUBLIC) | $(BUILD) prep
 	$(CC) -c $(CFLAGS) $(FOUND_INCS) -DFILENAME=\"$(notdir $<)\" -o $@ $<
 
 $(BUILD):

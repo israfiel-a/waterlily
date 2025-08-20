@@ -164,7 +164,7 @@ typedef struct waterlily_key_combination
                  waterlily_context_t *context);
 } waterlily_key_combination_t;
 
-#define waterlily_entry(args)                                                  \
+#define waterlily_entry(...)                                                   \
     __asm(".global _start\n"                                                   \
           "_start:\n"                                                          \
           "xorl %ebp, %ebp\n"                                                  \
