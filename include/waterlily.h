@@ -164,27 +164,29 @@ typedef struct waterlily_key_combination
                  waterlily_context_t *context);
 } waterlily_key_combination_t;
 
-#define waterlily_entry(...)                                                   \
-    __asm(".global _start\n"                                                   \
-          "_start:\n"                                                          \
-          "xorl %ebp, %ebp\n"                                                  \
-          "movq 0(%rsp), %rdi\n"                                               \
-          "lea 8(%rsp), %rsi\n"                                                \
-          "call waterlily_create\n"                                            \
-          "cmp $0, %rdi\n"                                                     \
-          "jne .run\n"                                                         \
-          "movq %rax, %rdi\n"                                                  \
-          "movl $60, %eax\n"                                                   \
-          "syscall\n"                                                          \
-          ".run:\n"                                                            \
-          "movq %rax, %rdi\n"                                                  \
-          "call waterlily_application\n"                                       \
-          "pushq %rdi\n"                                                       \
-          "call waterlily_destroy\n"                                           \
-          "popq %rdi\n"                                                        \
-          "movl $60, %eax\n"                                                   \
-          "syscall");                                                          \
-    int waterlily_application(__VA_ARGS__)
+#define WATERLILY_ENTRYPOINT                                                   \
+    void _start()                                                              \
+    {                                                                          \
+        long argc, argv;                                                       \
+        __asm("xorl %%ebp, %%ebp\n"                                            \
+              "movq 0(%%rsp), %0\n"                                            \
+              "lea 8(%%rsp), %1\n"                                             \
+              : "=r"(argc), "=r"(argv));                                       \
+                                                                               \
+        extern waterlily_context_t *waterlily_create(int argc, char **argv);   \
+        waterlily_context_t *context =                                         \
+            waterlily_create((int)argc, (char **)argv);                        \
+        if (context == nullptr)                                                \
+            __asm("mov $60, %rax\nmov $1, %rdi\nsyscall");                     \
+                                                                               \
+        extern bool waterlily_application(waterlily_context_t * context);      \
+        bool applicationCode = waterlily_application(context);                 \
+                                                                               \
+        extern void waterlily_destroy(void);                                   \
+        waterlily_destroy();                                                   \
+                                                                               \
+        __asm("mov $60, %%rax\nsyscall" ::"D"(applicationCode));               \
+    }
 
 bool waterlily_run(waterlily_context_t *context);
 
