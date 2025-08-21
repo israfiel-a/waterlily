@@ -1,4 +1,5 @@
 #include "internal.h"
+#include "internal/files.h"
 
 #include <errno.h>
 #include <stdarg.h>
@@ -82,59 +83,37 @@ bool waterlily_engine_digest(waterlily_context_t *context, int argc,
 bool waterlily_engine_configure(waterlily_configuration_t *configuration)
 {
     FILE *file;
-    if (!waterlily_files_open("Assets/engine.wl", &file))
-    {
-        waterlily_files_close(file);
-        return false;
-    }
-
     size_t fileSize;
-    if (!waterlily_files_measure(file, &fileSize))
+    if (!waterlily_openFile("engine", WATERLILY_CONFIG_FILE, &file, &fileSize))
     {
-        waterlily_files_close(file);
+        waterlily_closeFile(file);
         return false;
     }
 
-    char contents[fileSize + 1];
-    if (!waterlily_files_read(file, fileSize, (uint8_t *)contents))
+    char raw[fileSize + 1];
+    waterlily_file_contents_t contents = {0};
+    if (!waterlily_interpretFile(file, fileSize, WATERLILY_CONFIG_FILE, raw,
+                                 &contents))
     {
-        waterlily_files_close(file);
+        waterlily_closeFile(file);
         return false;
     }
-    contents[fileSize] = 0;
-    waterlily_files_close(file);
+    waterlily_closeFile(file);
 
-    char *cursor = (char *)contents;
-    char *segment = cursor;
-    uint8_t search = 0;
-    while (*cursor != 0)
+    for (size_t i = 0; i < contents.config.pairCount; ++i)
     {
-        if (*cursor != ':' && *cursor != '\n')
+        auto config = contents.config.pairs[i];
+        switch (config.key)
         {
-            cursor++;
-            continue;
-        }
-
-        *cursor = 0;
-        cursor++;
-        switch (search)
-        {
-            case 0:
+            case WATERLILY_CONFIG_FILE_TITLE_KEY:
+                configuration->title = config.value.title;
                 break;
-            case 1:
-                configuration->title = segment;
-                break;
+            default:
+                waterlily_engine_log(
+                    ERROR, "Got unknown engine configuration key '%d'.",
+                    config.key);
+                return false;
         }
-
-        if (strcmp(segment, "title") == 0)
-        {
-            search = 1;
-            continue;
-        }
-
-        waterlily_engine_log(ERROR, "Found unknown configuration key '%s'.",
-                             segment);
-        return false;
     }
 
     return true;

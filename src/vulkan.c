@@ -1,4 +1,5 @@
 #include "internal.h"
+#include "internal/files.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -650,7 +651,7 @@ bool waterlily_vulkan_create(waterlily_context_t *context)
         VkExtensionProperties *properties = &foundExtensions[i];
         waterlily_engine_log(INFO, "Found instance extension '%s'.",
                              properties->extensionName);
-        for (size_t j = 0; j < count; ++j)
+        for (size_t j = 0; j < instanceInfo.enabledExtensionCount; ++j)
         {
             if (strcmp(properties->extensionName, extensions[j]) == 0)
             {
@@ -663,7 +664,7 @@ bool waterlily_vulkan_create(waterlily_context_t *context)
         }
     }
 
-    if (foundProvidedExtensions != count)
+    if (foundProvidedExtensions != instanceInfo.enabledExtensionCount)
     {
         waterlily_engine_log(
             ERROR,
@@ -859,25 +860,17 @@ static bool createModule(VkDevice device, const char *const filename,
                          VkPipelineShaderStageCreateInfo *stage)
 {
     FILE *output;
-    if (!waterlily_files_open(filename, &output))
+    size_t fileSize;
+    if (!waterlily_openFile(filename, WATERLILY_GENERIC_FILE, &output,
+                            &fileSize))
     {
-        waterlily_files_close(output);
+        waterlily_closeFile(output);
         return false;
     }
 
-    size_t fileSize;
-    if (!waterlily_files_measure(output, &fileSize))
-    {
-        waterlily_files_close(output);
-        return false;
-    }
     char fileContents[fileSize];
-    if (!waterlily_files_read(output, fileSize, (uint8_t *)fileContents))
-    {
-        waterlily_files_close(output);
-        return false;
-    }
-    waterlily_files_close(output);
+    fread(fileContents, 1, fileSize, output);
+    waterlily_closeFile(output);
 
     VkShaderModuleCreateInfo moduleCreateInfo = {0};
     moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
