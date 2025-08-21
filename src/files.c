@@ -69,7 +69,8 @@ bool waterlily_openFile(const char *const name, waterlily_file_type_t type,
     const char *const extension = typeExtensions[type];
 
     size_t filepathLength = sizeof(WATERLILY_RESOURCE_DIRECTORY) +
-                            strlen(name) + strlen(subdirectory);
+                            strlen(name) + strlen(subdirectory) +
+                            strlen(extension) + 1;
     char filepath[filepathLength];
     (void)snprintf(filepath, filepathLength,
                    WATERLILY_RESOURCE_DIRECTORY "%s/%s%s", subdirectory, name,
@@ -150,6 +151,8 @@ static bool parseConfig(const char *const raw,
                         .value.title = strndup(value, ch - value),
                     };
                 contents->config.pairCount++;
+                value = nullptr;
+                key = ch + 1;
                 break;
             default:
                 waterlily_engine_log(ERROR, "Unimplement configuration key %d.",
