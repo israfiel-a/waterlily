@@ -1,8 +1,8 @@
 #ifndef WATERLILY_INTERNAL_H
 #define WATERLILY_INTERNAL_H
 
-#include <waterlily.h>
 #include <vulkan/vulkan.h>
+#include <waterlily.h>
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
 
@@ -128,8 +128,7 @@ bool waterlily_window_create(const char *const title,
 void waterlily_window_destroy(waterlily_context_t *context);
 bool waterlily_window_process(waterlily_context_t *context);
 
-bool waterlily_vulkan_create(waterlily_context_t *context,
-                             const char *const *const extensions, size_t count);
+bool waterlily_vulkan_create(waterlily_context_t *context);
 void waterlily_vulkan_destroy(waterlily_context_t *context);
 bool waterlily_vulkan_render(waterlily_context_t *context);
 bool waterlily_vulkan_sync(waterlily_context_t *context);

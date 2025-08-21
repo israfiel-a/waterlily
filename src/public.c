@@ -5,13 +5,13 @@
 
 waterlily_context_t context = {0};
 
-waterlily_context_t *waterlily_create(int argc, const char *const *const argv)
+int main(int argc, const char *const *const argv)
 {
     char *workingDirectory;
     size_t workingDirectoryLength;
     if (!waterlily_engine_digest(&context, argc, argv, &workingDirectory,
                                  &workingDirectoryLength))
-        return nullptr;
+        return -1;
     char wd[workingDirectoryLength + 1];
     (void)strncpy(wd, workingDirectory, workingDirectoryLength);
     wd[workingDirectoryLength] = 0;
@@ -21,18 +21,9 @@ waterlily_context_t *waterlily_create(int argc, const char *const *const argv)
     {
         waterlily_engine_log(ERROR,
                              "Failed to move working directory into '%s'.", wd);
-        return nullptr;
+        return -1;
     }
     waterlily_engine_log(SUCCESS, "Changed working directory to '%s'.", wd);
-
-    char *instanceExtensions[] = {
-        "VK_KHR_surface",
-        "VK_KHR_wayland_surface",
-        "VK_KHR_get_surface_capabilities2",
-        "VK_EXT_surface_maintenance1",
-        "VK_EXT_debug_utils",
-    };
-    size_t instanceExtensionCount = sizeof(instanceExtensions) / sizeof(char *);
 
     char *deviceExtensions[] = {
         "VK_KHR_swapchain",
@@ -42,19 +33,18 @@ waterlily_context_t *waterlily_create(int argc, const char *const *const argv)
 
     waterlily_configuration_t configuration = {0};
     if (!waterlily_engine_configure(&configuration))
-        return nullptr;
+        return -1;
 
     if (!waterlily_input_createContext(&context) ||
         !waterlily_window_create(configuration.title, &context) ||
-        !waterlily_vulkan_create(&context, (const char **)instanceExtensions,
-                                 instanceExtensionCount) ||
+        !waterlily_vulkan_create(&context) ||
         !waterlily_vulkan_createSurface(&context) ||
         !waterlily_vulkan_getPhysicalGPU(
             &context, (const char **)deviceExtensions, deviceExtensionCount) ||
         !waterlily_vulkan_getFormatSurface(&context) ||
         !waterlily_vulkan_getModeSurface(&context) ||
         !waterlily_vulkan_getCapabilitiesSurface(&context))
-        return nullptr;
+        return -1;
 
     waterlily_vulkan_getExtentSurface(&context);
 
@@ -73,11 +63,11 @@ waterlily_context_t *waterlily_create(int argc, const char *const *const argv)
             &requestedDeviceFeatures) ||
         !waterlily_vulkan_createSwapchain(&context) ||
         !waterlily_vulkan_partitionSwapchain(&context))
-        return nullptr;
+        return -1;
 
     VkPipelineShaderStageCreateInfo stages[2];
     if (!waterlily_vulkan_setupShadersPipeline(&context, stages))
-        return nullptr;
+        return -1;
 
     if (!waterlily_vulkan_createLayoutPipeline(&context) ||
         !waterlily_vulkan_createRenderpassPipeline(&context) ||
@@ -85,12 +75,11 @@ waterlily_context_t *waterlily_create(int argc, const char *const *const argv)
         !waterlily_vulkan_createFramebuffersSwapchain(&context) ||
         !waterlily_vulkan_createBuffersCommand(&context) ||
         !waterlily_vulkan_createSyncsCommand(&context))
-        return nullptr;
-    return &context;
-}
+        return -1;
 
-void waterlily_destroy(void)
-{
+    extern bool waterlily_application(waterlily_context_t * context);
+    bool applicationCode = waterlily_application(&context);
+
     waterlily_vulkan_sync(&context);
     waterlily_vulkan_destroyBuffers(&context);
     waterlily_vulkan_destroySyncs(&context);
@@ -101,6 +90,7 @@ void waterlily_destroy(void)
     waterlily_vulkan_destroy(&context);
     waterlily_window_destroy(&context);
     waterlily_input_destroy(&context);
+    return applicationCode;
 }
 
 bool waterlily_run(waterlily_context_t *context)

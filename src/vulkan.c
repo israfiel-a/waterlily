@@ -612,8 +612,7 @@ static VkBool32 debugCallback(
 }
 #endif
 
-bool waterlily_vulkan_create(waterlily_context_t *context,
-                             const char *const *const extensions, size_t count)
+bool waterlily_vulkan_create(waterlily_context_t *context)
 {
     VkApplicationInfo applicationInfo = {0};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -627,7 +626,15 @@ bool waterlily_vulkan_create(waterlily_context_t *context,
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceInfo.pApplicationInfo = &applicationInfo;
 
-    instanceInfo.enabledExtensionCount = count;
+    const char *extensions[] = {
+        "VK_KHR_surface",
+        "VK_KHR_wayland_surface",
+        "VK_KHR_get_surface_capabilities2",
+        "VK_EXT_surface_maintenance1",
+        "VK_EXT_debug_utils",
+    };
+
+    instanceInfo.enabledExtensionCount = sizeof(extensions) / sizeof(char *);
     instanceInfo.ppEnabledExtensionNames = extensions;
 
     uint32_t foundExtensionCount;
