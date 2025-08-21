@@ -65,7 +65,7 @@ int main(int argc, const char *const *const argv)
         !waterlily_vulkan_partitionSwapchain(&context))
         return -1;
 
-    VkPipelineShaderStageCreateInfo stages[2];
+    VkPipelineShaderStageCreateInfo stages[2] = {0};
     if (!waterlily_vulkan_setupShadersPipeline(&context, stages))
         return -1;
 

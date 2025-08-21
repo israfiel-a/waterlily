@@ -108,6 +108,8 @@ typedef struct waterlily_log
 typedef struct waterlily_configuration
 {
     char *title;
+    char *author;
+    char *version;
 } waterlily_configuration_t;
 
 #define waterlily_engine_log(type, format, ...)                                \
@@ -172,10 +174,6 @@ bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context,
                                           uint32_t imageIndex);
 void waterlily_vulkan_destroyBuffers(waterlily_context_t *context);
 void waterlily_vulkan_destroySyncs(waterlily_context_t *context);
-
-bool waterlily_files_execute(char *const *args);
-bool waterlily_files_remove(const char *const path);
-bool waterlily_files_exists(const char *const path);
 
 bool waterlily_input_createContext(waterlily_context_t *context);
 bool waterlily_input_setKeymap(waterlily_context_t *context,

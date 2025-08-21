@@ -856,124 +856,54 @@ bool waterlily_vulkan_recordBufferCommand(waterlily_context_t *context,
     return true;
 }
 
-static bool createModule(VkDevice device, const char *const filename,
-                         VkPipelineShaderStageCreateInfo *stage)
-{
-    FILE *output;
-    size_t fileSize;
-    if (!waterlily_openFile(filename, WATERLILY_GENERIC_FILE, &output,
-                            &fileSize))
-    {
-        waterlily_closeFile(output);
-        return false;
-    }
-
-    char fileContents[fileSize];
-    fread(fileContents, 1, fileSize, output);
-    waterlily_closeFile(output);
-
-    VkShaderModuleCreateInfo moduleCreateInfo = {0};
-    moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    moduleCreateInfo.codeSize = fileSize;
-    moduleCreateInfo.pCode = (uint32_t *)fileContents;
-
-    VkShaderModule module;
-    VkResult result =
-        vkCreateShaderModule(device, &moduleCreateInfo, nullptr, &module);
-    if (result != VK_SUCCESS)
-    {
-        waterlily_engine_log(ERROR, "Failed to create shader module. Code: %d.",
-                             result);
-        return false;
-    }
-    waterlily_engine_log(SUCCESS, "Created shader module.");
-
-    stage->sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stage->stage = (strcmp(strrchr(filename, '.') + 1, "vert") == 0
-                        ? VK_SHADER_STAGE_VERTEX_BIT
-                        : VK_SHADER_STAGE_FRAGMENT_BIT);
-    stage->module = module;
-    stage->pName = "main";
-    return true;
-}
-
 bool waterlily_vulkan_setupShadersPipeline(
     waterlily_context_t *context, VkPipelineShaderStageCreateInfo *storage)
 {
-    char *argv[] = {
-        "/usr/bin/glslang",
-        "-e",
-        "main",
-#if BUILD_TYPE == 0
-        "-g",
-#else
-        "-g0",
-#endif
-        "-o",
-        nullptr,
-        "-t",
-        "--glsl-version",
-        "460",
-        "--quiet",
-        "--spirv-val",
-        "--target-env",
-        "vulkan1.3",
-        "--lto",
-        nullptr,
-        nullptr,
+    waterlily_file_t shaderFile = {
+        .name = "shaders",
+        .type = WATERLILY_SHADER_FILE,
     };
+    if (!waterlily_readFile(&shaderFile))
+        return false;
 
-    const char *const shaders[] = {
-        "default.vert",
-        "default.frag",
-    };
-
-    for (size_t i = 0; i < sizeof(shaders) / sizeof(char *); ++i)
+    for (size_t i = 0; i < WATERLILY_SHADER_STAGES; ++i)
     {
-        const char *const file = shaders[i];
-        size_t fileLength = strlen(file) + 25;
-        char fullPath[fileLength], outputPath[fileLength + 2];
-        snprintf(fullPath, fileLength, "Assets/Shaders/Source/%s", file);
-        snprintf(outputPath, fileLength, "Assets/Shaders/Compiled/%s", file);
-        argv[5] = outputPath;
-        argv[14] = fullPath;
+        VkPipelineShaderStageCreateInfo *info = &storage[i];
+        info->sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        info->pName = "main";
 
-        if (!waterlily_files_exists(fullPath))
+        switch (i)
         {
-            // Already did the compilation in a prior run-through.
-            if (waterlily_files_exists(outputPath))
-            {
-                if (!createModule(context->gpu.logical, outputPath,
-                                  &storage[i]))
-                    return false;
-                continue;
-            }
-
-            waterlily_engine_log(ERROR, "Failed to find provided shader '%s'.",
-                                 fullPath);
-            return false;
+            case 0:
+                info->stage = VK_SHADER_STAGE_VERTEX_BIT;
+                break;
+            case 1:
+                info->stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+                break;
+            default:
+                waterlily_engine_log(ERROR, "Unknown shader stage index %d.",
+                                     i);
+                return false;
+                break;
         }
 
-        if (!waterlily_files_execute(argv))
+        VkShaderModuleCreateInfo moduleCreate = {
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .codeSize = shaderFile.shader[i].size,
+            .pCode = shaderFile.shader[i].code,
+        };
+        VkResult result = vkCreateShaderModule(
+            context->gpu.logical, &moduleCreate, nullptr, &info->module);
+        if (result != VK_SUCCESS)
+        {
+            waterlily_engine_log(
+                ERROR, "Failed to create shader module, code %d.", result);
             return false;
-        waterlily_engine_log(SUCCESS, "Compiled shader '%s'.", fullPath);
-
-        if (!createModule(context->gpu.logical, outputPath, &storage[i]))
-            return false;
+        }
     }
 
-    if (!waterlily_files_exists("Assets/Shaders/Source/"))
-    {
-        waterlily_engine_log(WARNING, "Shader source directory missing.");
-        return true;
-    }
-
-    if (!waterlily_files_remove("Assets/Shaders/Source/"))
-    {
-        waterlily_engine_log(ERROR,
-                             "Failed to remove shader source directory.");
-        return false;
-    }
     return true;
 }
 

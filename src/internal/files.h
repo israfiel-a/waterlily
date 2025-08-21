@@ -2,47 +2,61 @@
 #define WATERLILY_INTERNAL_FILES_H
 
 #include <stdint.h>
-#include <stdio.h>
+#define __need_size_t
+#include <stddef.h>
 
-#define WATERLILY_FILE_CONTENTS_CONFIG_MAX_PAIRS 16
+#define WATERLILY_SHADER_STAGES 2
+#define WATERLILY_MAX_CONFIG_PAIRS 16
 
-typedef enum waterlily_file_type
+#define WATERLILY_ASSET_DIRECTORY "./rss/"
+#define WATERLILY_SHADER_DIRECTORY "shaders/"
+
+typedef struct waterlily_file
 {
-    WATERLILY_GENERIC_FILE,
-    WATERLILY_CONFIG_FILE
-} waterlily_file_type_t;
-
-typedef union waterlily_file_contents
-{
-    struct
+    char *name;
+    enum
+    {
+        WATERLILY_TEXT_FILE,
+        WATERLILY_CONFIG_FILE,
+        WATERLILY_SHADER_FILE,
+    } type;
+    union
     {
         struct
         {
-            enum
+            size_t size;
+            char *contents;
+        } text;
+        struct
+        {
+            struct
             {
-                WATERLILY_CONFIG_FILE_UNKNOWN_KEY,
-                WATERLILY_CONFIG_FILE_TITLE_KEY,
-                WATERLILY_CONFIG_FILE_SHADERS_KEY
-            } key;
-            union
-            {
-                char *title;
-                uint32_t **shaders;
-            } value;
-        } pairs[WATERLILY_FILE_CONTENTS_CONFIG_MAX_PAIRS];
-        size_t pairCount;
-    } config;
-} waterlily_file_contents_t;
+                enum waterlily_config_key
+                {
+                    WATERLILY_CONFIG_TITLE_KEY,
+                    WATERLILY_CONFIG_AUTHOR_KEY,
+                    WATERLILY_CONFIG_VERSION_KEY,
+                } key;
+                union
+                {
+                    char *title;
+                    char *author;
+                    char *version;
+                } value;
+            } pairs[WATERLILY_MAX_CONFIG_PAIRS];
+            size_t pairCount;
+        } config;
+        struct
+        {
+            uint32_t *code;
+            size_t size;
+        } shader[WATERLILY_SHADER_STAGES];
+    };
+} waterlily_file_t;
 
-#define WATERLILY_RESOURCE_DIRECTORY "./rss/"
-
-bool waterlily_openFile(const char *const name, waterlily_file_type_t type,
-                        FILE **file, size_t *size);
-static inline void waterlily_closeFile(FILE *file) { fclose(file); }
-
-bool waterlily_interpretFile(FILE *file, size_t size,
-                             waterlily_file_type_t type, char *raw,
-                             waterlily_file_contents_t *contents);
+bool waterlily_readFile(waterlily_file_t *file);
+bool waterlily_writeFile(waterlily_file_t *file, bool append);
+void waterlily_closeFile(waterlily_file_t *file);
 
 #endif // WATERLILY_INTERNAL_FILES_H
 

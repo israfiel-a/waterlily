@@ -82,31 +82,26 @@ bool waterlily_engine_digest(waterlily_context_t *context, int argc,
 
 bool waterlily_engine_configure(waterlily_configuration_t *configuration)
 {
-    FILE *file;
-    size_t fileSize;
-    if (!waterlily_openFile("engine", WATERLILY_CONFIG_FILE, &file, &fileSize))
-    {
-        waterlily_closeFile(file);
+    waterlily_file_t file = {
+        .name = "engine",
+        .type = WATERLILY_CONFIG_FILE,
+    };
+    if (!waterlily_readFile(&file))
         return false;
-    }
 
-    char raw[fileSize + 1];
-    waterlily_file_contents_t contents = {0};
-    if (!waterlily_interpretFile(file, fileSize, WATERLILY_CONFIG_FILE, raw,
-                                 &contents))
+    for (size_t i = 0; i < file.config.pairCount; ++i)
     {
-        waterlily_closeFile(file);
-        return false;
-    }
-    waterlily_closeFile(file);
-
-    for (size_t i = 0; i < contents.config.pairCount; ++i)
-    {
-        auto config = contents.config.pairs[i];
+        auto config = file.config.pairs[i];
         switch (config.key)
         {
-            case WATERLILY_CONFIG_FILE_TITLE_KEY:
+            case WATERLILY_CONFIG_TITLE_KEY:
                 configuration->title = config.value.title;
+                break;
+            case WATERLILY_CONFIG_AUTHOR_KEY:
+                configuration->author = config.value.author;
+                break;
+            case WATERLILY_CONFIG_VERSION_KEY:
+                configuration->version = config.value.author;
                 break;
             default:
                 waterlily_engine_log(
