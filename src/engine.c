@@ -29,7 +29,7 @@ void(waterlily_engine_log)(const waterlily_log_t *data,
     va_end(args);
 
     if (data->type == WATERLILY_LOG_TYPE_ERROR)
-        (void)fprintf(output, "\tCurrent ERRNO (may be garbage): %d\n", errno);
+        (void)fprintf(output, "       Current ERRNO (may be garbage): %d\n", errno);
 }
 
 bool waterlily_engine_digest(waterlily_context_t *context, int argc,
