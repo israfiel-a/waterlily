@@ -182,6 +182,39 @@ static bool parseConfig(waterlily_file_t *file)
     return true;
 }
 
+static bool parseShader(waterlily_file_t *file)
+{
+    char *currentShader = (char *)file->text.contents;
+    char *cursor = currentShader;
+    size_t shaderIndex = 0;
+
+    while (*cursor != 0)
+    {
+        while (*cursor != 0 && *cursor != 0xA && *(cursor + 1) != 0xD)
+            cursor++;
+
+        if (*cursor == 0)
+        {
+            waterlily_engine_log(
+                ERROR,
+                "Malformed shader at index %zu (missing magic end number).",
+                shaderIndex);
+            return false;
+        }
+
+        *cursor = 0;
+        *(cursor + 1) = 0;
+
+        auto shader = &file->shader[shaderIndex];
+        shader->size = cursor - currentShader;
+        shader->code = (uint32_t *)currentShader;
+
+        cursor += 2;
+    }
+
+    return true;
+}
+
 bool waterlily_readFile(waterlily_file_t *file)
 {
     waterlily_engine_log(INFO, "Opening file '%s' of type %d.", file->name,
@@ -247,8 +280,10 @@ bool waterlily_readFile(waterlily_file_t *file)
             file->text.size = stat.st_size;
             break;
         case WATERLILY_SHADER_FILE:
-            waterlily_engine_log(ERROR, "unimplemented");
-            return false;
+            file->text.contents = contents;
+            if (!parseShader(file))
+                return false;
+            break;
         case WATERLILY_CONFIG_FILE:
             file->text.contents = contents;
             if (!parseConfig(file))
