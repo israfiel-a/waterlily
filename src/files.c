@@ -39,8 +39,9 @@ static bool compileShaders(void)
             return false;
         }
 
-        outputFile.text.size = file.text.size + 2;
+        outputFile.text.size = file.text.size + 3;
         char output[outputFile.text.size];
+        output[0] = 0;
         strcat(output, file.text.contents);
         output[file.text.size] = 0xA;
         output[file.text.size + 1] = 0xD;
@@ -111,8 +112,6 @@ static bool digestValue(char *key, char *value, char *ch,
     file->config.pairCount++;
 
     *ch = 0;
-    waterlily_engine_log(ERROR, "%s", key);
-
     return true;
 }
 
@@ -188,16 +187,16 @@ bool waterlily_readFile(waterlily_file_t *file)
     waterlily_engine_log(INFO, "Opening file '%s' of type %d.", file->name,
                          file->type);
 
-    size_t filepathLength = strlen(file->name) + 5;
+    size_t filepathLength =
+        sizeof(WATERLILY_ASSET_DIRECTORY) + strlen(file->name) + 5;
     char filepath[filepathLength];
     getFilepath(filepath, file);
 
-    if (access(filepath, R_OK) != 0)
+    if (access(filepath, R_OK) != 0 &&
+        (file->type != WATERLILY_SHADER_FILE || !compileShaders()))
     {
         waterlily_engine_log(ERROR, "File is not accessible.");
-        if (file->type != WATERLILY_SHADER_FILE || !compileShaders())
-            return false;
-        waterlily_engine_log(ERROR, "%d:%s", access(filepath, R_OK), filepath);
+        return false;
     }
     waterlily_engine_log(SUCCESS, "File correctly accessible.");
 
@@ -254,6 +253,7 @@ bool waterlily_readFile(waterlily_file_t *file)
             file->text.contents = contents;
             if (!parseConfig(file))
                 return false;
+            break;
     }
 
     return true;
@@ -264,7 +264,8 @@ bool waterlily_writeFile(waterlily_file_t *file, bool append)
     waterlily_engine_log(INFO, "Writing to file '%s' of type %d.", file->name,
                          file->type);
 
-    size_t filepathLength = strlen(file->name) + 5;
+    size_t filepathLength =
+        sizeof(WATERLILY_ASSET_DIRECTORY) + strlen(file->name) + 5;
     char filepath[filepathLength];
     getFilepath(filepath, file);
 
