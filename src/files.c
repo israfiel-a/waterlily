@@ -22,15 +22,14 @@ static bool compileShaders(void)
     for (size_t i = 0; i < WATERLILY_SHADER_STAGES; ++i)
     {
         const char *const stage = stageNames[i];
-        size_t filepathLength =
+        size_t currentPathLength =
             sizeof(WATERLILY_SHADER_DIRECTORY) + strlen(stage);
-        char filepath[filepathLength];
-        (void)strcat(filepath, WATERLILY_SHADER_DIRECTORY);
-        (void)strcat(filepath, stage);
+        char currentPath[currentPathLength];
+        (void)sprintf(currentPath, WATERLILY_SHADER_DIRECTORY "%s", stage);
 
         waterlily_file_t file = {
             .type = WATERLILY_TEXT_FILE,
-            .name = filepath,
+            .name = currentPath,
         };
 
         if (!waterlily_readFile(&file))
@@ -198,6 +197,7 @@ bool waterlily_readFile(waterlily_file_t *file)
         waterlily_engine_log(ERROR, "File is not accessible.");
         if (file->type != WATERLILY_SHADER_FILE || !compileShaders())
             return false;
+        waterlily_engine_log(ERROR, "%d:%s", access(filepath, R_OK), filepath);
     }
     waterlily_engine_log(SUCCESS, "File correctly accessible.");
 
@@ -213,6 +213,9 @@ bool waterlily_readFile(waterlily_file_t *file)
     if (fstat(fileno(handle), &stat) != 0)
     {
         waterlily_engine_log(ERROR, "Failed to stat file.");
+
+        if (fclose(handle) != 0)
+            waterlily_engine_log(ERROR, "Failed to close file.");
         return false;
     }
     waterlily_engine_log(SUCCESS, "Statted file.");
@@ -223,10 +226,20 @@ bool waterlily_readFile(waterlily_file_t *file)
     {
         waterlily_engine_log(
             ERROR, "Failed to read file, could only read %zu bytes.", read);
+
+        if (fclose(handle) != 0)
+            waterlily_engine_log(ERROR, "Failed to close file.");
         return false;
     }
     contents[stat.st_size] = 0;
     waterlily_engine_log(SUCCESS, "Read %zu bytes from file.", read);
+
+    if (fclose(handle) != 0)
+    {
+        waterlily_engine_log(ERROR, "Failed to close file.");
+        return false;
+    }
+    waterlily_engine_log(INFO, "Closed file handle.");
 
     switch (file->type)
     {
@@ -242,9 +255,6 @@ bool waterlily_readFile(waterlily_file_t *file)
             if (!parseConfig(file))
                 return false;
     }
-
-    (void)fclose(handle);
-    waterlily_engine_log(INFO, "Closed file handle.");
 
     return true;
 }
@@ -271,11 +281,18 @@ bool waterlily_writeFile(waterlily_file_t *file, bool append)
     {
         waterlily_engine_log(
             ERROR, "Failed to write to file, only wrote %zu bytes", wrote);
+
+        if (fclose(handle) != 0)
+            waterlily_engine_log(ERROR, "Failed to close file.");
         return false;
     }
     waterlily_engine_log(SUCCESS, "Wrote %zu bytes to file.", wrote);
 
-    (void)fclose(handle);
+    if (fclose(handle) != 0)
+    {
+        waterlily_engine_log(ERROR, "Failed to close file.");
+        return false;
+    }
     waterlily_engine_log(INFO, "Closed file handle.");
 
     return true;
