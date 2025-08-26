@@ -96,7 +96,7 @@ ARCHIVER_EXECUTABLE_OUTPUTS:=$(foreach source,$\
 PUBLIC_LIBRARY:=$(BUILD_DIRECTORY)/$(PUBLIC_LIBRARY_NAME)
 ARCHIVER_EXECUTABLE:=$(BUILD_DIRECTORY)/$(ARCHIVER_EXECUTABLE_NAME)
 
-COMPILE_COMMANDS:=$(BUILD_DIRECTORY)/compile_commands.json
+COMPILEDB:=$(BUILD_DIRECTORY)/compile_commands.json
 
 ################################################################################
 ## Get together the proper flags to compile.
@@ -157,7 +157,7 @@ $(BUILD_DIRECTORY)/release.mode:
 $(COMPILEDB):
 	$(if $(strip $(GENERATING)),,$\
 		$(if $(shell command -v compiledb),$\
-			compiledb -n -o $(COMPILE_COMMANDS) $(MAKE) debug GENERATING=on,$\
+			compiledb -n -o $(COMPILEDB) $(MAKE) debug GENERATING=on,$\
 		)$\
 	)
 
