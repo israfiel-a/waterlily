@@ -69,13 +69,14 @@ ARCHIVER_EXECUTABLE_OUTPUTS:=$(foreach source,$(ARCHIVER_EXECUTABLE_SOURCE_NAMES
 PUBLIC_LIBRARY:=$(BUILD_DIRECTORY)/$(PUBLIC_LIBRARY_NAME)
 ARCHIVER_EXECUTABLE:=$(BUILD_DIRECTORY)/$(ARCHIVER_EXECUTABLE_NAME)
 
+COMPILE_COMMANDS:=$(BUILD_DIRECTORY)/compile_commands.json
+
 ###############################################################################
 ## Get together the proper flags to compile.
 ###############################################################################
 
 define find_dependency
-$(if $(shell pkg-config --exists $(1); echo $$?),$\
-	$(shell pkg-config --cflags --libs $(1)),echo "not found")
+$(if $(shell pkg-config --exists --print-errors $(1)),$(if $(filter vulkan,$(1)),$(if $(strip $(VULKAN_SDK)),-L$(LD_LAYER_PATH) -lvulkan -I$(VULKAN_SDK)/include,$(error "Missing Vulkan SDK path.")),$(error "Failed to find package.")),$(shell pkg-config --cflags --libs $(1)))
 endef
 
 CFLAGS:=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE_DIRECTORY)
@@ -98,9 +99,11 @@ all: $(PUBLIC_LIBRARY) $(ARCHIVER_EXECUTABLE)
 clean:
 	rm -rf $(BUILD_DIRECTORY)
 
+$(COMPILE_COMMANDS): $(PUBLIC_LIBRARY_OUTPUTS) $(ARCHIVER_EXECUTABLE_OUTPUTS) | $(BUILD_DIRECTORY)
+	$(if $(shell command -v compiledb),compiledb -n -o $(COMPILE_COMMANDS) $(MAKE) debug GENERATING=on)
+
 debug: CFLAGS+=-Og -g3 -ggdb -fanalyzer -fsanitize=leak -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined
-debug: all
-	$(if $(strip $(GENERATING)),,$(if $(shell command -v compiledb),$(shell compiledb -o $(BUILD_DIRECTORY)/compile_commands.json make debug GENERATING=on)))
+debug: $(PUBLIC_LIBRARY) $(ARCHIVER_EXECUTABLE) $(if $(strip $(GENERATING)),,$(COMPILE_COMMANDS))
 
 release: CFLAGS+=-march=native -mtune=native -Ofast -flto
 release: all
