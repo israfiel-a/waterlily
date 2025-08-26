@@ -14,7 +14,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        build_type: [RELEASE, DEBUG]
+        build_type: [release, debug]
     steps:
     - uses: actions/checkout@v4
     - name: Prepare Vulkan
@@ -28,4 +28,4 @@ jobs:
         sudo apt update
         sudo apt install libwayland-dev glslang-dev libxkbcommon-dev
     - name: Build
-      run: make ${{ matrix.build_type }}=on
+      run: make ${{ matrix.build_type }}
