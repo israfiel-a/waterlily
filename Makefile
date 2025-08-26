@@ -76,7 +76,7 @@ COMPILE_COMMANDS:=$(BUILD_DIRECTORY)/compile_commands.json
 ###############################################################################
 
 define setup_vulkan_sdk
-	CFLAGS+= -L$(LD_LIBRARY_PATH:-=) -l$(1) -I$(VULKAN_SDK)/include
+	-L$(LD_LIBRARY_PATH:-=) -l$(1) -I$(VULKAN_SDK)/include
 endef
 
 define find_library
@@ -84,13 +84,13 @@ define find_library
 		$(if $(strip $(LD_LIBRARY_PATH)),$\
 			$(call setup_vulkan_sdk,$(1)),),$\
 		$(if $(shell ldconfig -p | grep libvulkan),$\
-			CFLAGS+= -l$(1),$\
+			-l$(1),$\
 			$(error "Failed to find $(1)")))
 endef
 
 define find_dependency 
 	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),$\
-		CFLAGS+=$(shell pkg-config --cflags $(1)),$\
+		$(shell pkg-config --cflags $(1)),$\
 		$(call find_library,$(1)))
 endef
 
