@@ -1,4 +1,4 @@
-###############################################################################
+################################################################################
 ## This file provides the Make build script for the Waterlily game engine. It
 ## contains logic for finding dependencies, managing build presets, and
 ## packaging the library itself.
@@ -16,13 +16,13 @@
 ## 
 ## You should have received a copy of the GNU General Public License along 
 ## with this program.  If not, see <https://www.gnu.org/licenses/>.
-###############################################################################
+################################################################################
 
 .PHONY: all clean debug release 
 
-###############################################################################
+################################################################################
 ## Figure out the source structure of the project.
-###############################################################################
+################################################################################
 
 SOURCE_DIRECTORY_NAME:=src
 INCLUDE_DIRECTORY_NAME:=include
@@ -39,20 +39,38 @@ INTERNAL_SOURCE_DIRECTORY:=$(SOURCE_DIRECTORY)/$(INTERNAL_DIRECTORY_NAME)
 ARCHIVER_SOURCE_DIRECTORY:=$(SOURCE_DIRECTORY)/$(ARCHIVER_DIRECTORY_NAME)
 
 INCLUDE_DIRECTORY:=$(abspath $(INCLUDE_DIRECTORY_NAME))
-# We don't actually give the compilation these variables for the sake of include clarity, but we use them to construct the full source file paths.
+# We don't actually give the compilation these variables for the sake of 
+# include clarity, but we use them to construct the full source file paths.
 INTERNAL_INCLUDE_DIRECTORY:=$(INCLUDE_DIRECTORY)/$(INTERNAL_DIRECTORY_NAME)
 ARCHIVER_INCLUDE_DIRECTORY:=$(INCLUDE_DIRECTORY)/$(ARCHIVER_DIRECTORY_NAME)
 
-PUBLIC_LIBRARY_SOURCES:=$(foreach source,$(PUBLIC_LIBRARY_SOURCE_NAMES),$(abspath $(INTERNAL_SOURCE_DIRECTORY)/$(source).c)) $(abspath $(SOURCE_DIRECTORY)/$(PUBLIC_LIBRARY_INTERFACE_NAME).c)
-ARCHIVER_EXECUTABLE_SOURCES:=$(foreach source,$(ARCHIVER_EXECUTABLE_SOURCE_NAMES),$(if $(wildcard $(ARCHIVER_SOURCE_DIRECTORY)/$(source).c),$(ARCHIVER_SOURCE_DIRECTORY)/$(source).c),$(INTERNAL_SOURCE_DIRECTORY)/$(source).c) $(abspath $(SOURCE_DIRECTORY)/$(ARCHIVER_EXECUTABLE_ENTRY_NAME).c)
+PUBLIC_LIBRARY_SOURCES:=$(foreach source,$\
+	$(PUBLIC_LIBRARY_SOURCE_NAMES),$\
+	$(INTERNAL_SOURCE_DIRECTORY)/$(source).c$\
+) $(SOURCE_DIRECTORY)/$(PUBLIC_LIBRARY_INTERFACE_NAME).c
+ARCHIVER_EXECUTABLE_SOURCES:=$(foreach source,$\
+	$(ARCHIVER_EXECUTABLE_SOURCE_NAMES),$\
+	$(if $(wildcard $(ARCHIVER_SOURCE_DIRECTORY)/$(source).c),$\
+		$(ARCHIVER_SOURCE_DIRECTORY)/$(source).c,$\
+		$(INTERNAL_SOURCE_DIRECTORY)/$(source).c$\
+	)$\
+) $(SOURCE_DIRECTORY)/$(ARCHIVER_EXECUTABLE_ENTRY_NAME).c
 
-PUBLIC_LIBRARY_INTERFACE:=$(abspath $(INCLUDE_DIRECTORY)/$(PUBLIC_LIBRARY_INTERFACE_NAME).h)
-INTERNAL_INTERFACES:=$(foreach interface,$(PUBLIC_LIBRARY_SOURCE_NAMES),$(abspath $(INTERNAL_INCLUDE_DIRECTORY)/$(interface).h))
-ARCHIVER_INTERFACES:=$(foreach interface,$(ARCHIVER_EXECUTABLE_SOURCE_NAMES),$(if $(wildcard $(ARCHIVER_SOURCE_DIRECTORY)/$(interface).c),$(abspath $(ARCHIVER_INCLUDE_DIRECTORY)/$(interface).h),$(INTERNAL_INCLUDE_DIRECTORY)/$(interface.h)))
+INTERNAL_INTERFACES:=$(foreach interface,$\
+	$(PUBLIC_LIBRARY_SOURCE_NAMES),$\
+	$(INTERNAL_INCLUDE_DIRECTORY)/$(interface).h$\
+) $(INCLUDE_DIRECTORY)/$(PUBLIC_LIBRARY_INTERFACE_NAME).h
+ARCHIVER_INTERFACES:=$(foreach interface,$\
+	$(ARCHIVER_EXECUTABLE_SOURCE_NAMES),$\
+	$(if $(wildcard $(ARCHIVER_SOURCE_DIRECTORY)/$(interface).c),$\
+		$(ARCHIVER_INCLUDE_DIRECTORY)/$(interface).h,$\
+		$(INTERNAL_INCLUDE_DIRECTORY)/$(interface).h$\
+	)$\
+)
 
-###############################################################################
+################################################################################
 ## Figure out the build structure of the project.
-###############################################################################
+################################################################################
 
 BUILD_DIRECTORY_NAME:=build
 
@@ -63,17 +81,26 @@ BUILD_DIRECTORY:=$(abspath $(BUILD_DIRECTORY_NAME))
 INTERNAL_BUILD_DIRECTORY:=$(BUILD_DIRECTORY)/$(INTERNAL_DIRECTORY_NAME)
 ARCHIVER_BUILD_DIRECTORY:=$(BUILD_DIRECTORY)/$(ARCHIVER_DIRECTORY_NAME)
 
-PUBLIC_LIBRARY_OUTPUTS:=$(foreach source,$(PUBLIC_LIBRARY_SOURCE_NAMES),$(abspath $(INTERNAL_BUILD_DIRECTORY)/$(source).o)) $(abspath $(BUILD_DIRECTORY)/$(PUBLIC_LIBRARY_INTERFACE_NAME).o)
-ARCHIVER_EXECUTABLE_OUTPUTS:=$(foreach source,$(ARCHIVER_EXECUTABLE_SOURCE_NAMES),$(if $(wildcard $(ARCHIVER_SOURCE_DIRECTORY)/$(source).c),$(abspath $(ARCHIVER_BUILD_DIRECTORY)/$(source).o),$(INTERNAL_BUILD_DIRECTORY)/$(source).o)) $(abspath $(BUILD_DIRECTORY)/$(ARCHIVER_EXECUTABLE_ENTRY_NAME).o)
+PUBLIC_LIBRARY_OUTPUTS:=$(foreach source,$\
+	$(PUBLIC_LIBRARY_SOURCE_NAMES),$\
+	$(INTERNAL_BUILD_DIRECTORY)/$(source).o$\
+) $(BUILD_DIRECTORY)/$(PUBLIC_LIBRARY_INTERFACE_NAME).o
+ARCHIVER_EXECUTABLE_OUTPUTS:=$(foreach source,$\
+	$(ARCHIVER_EXECUTABLE_SOURCE_NAMES),$\
+	$(if $(wildcard $(ARCHIVER_SOURCE_DIRECTORY)/$(source).c),$\
+		$(ARCHIVER_BUILD_DIRECTORY)/$(source).o,$\
+		$(INTERNAL_BUILD_DIRECTORY)/$(source).o$\
+	)$\
+) $(BUILD_DIRECTORY)/$(ARCHIVER_EXECUTABLE_ENTRY_NAME).o
 
 PUBLIC_LIBRARY:=$(BUILD_DIRECTORY)/$(PUBLIC_LIBRARY_NAME)
 ARCHIVER_EXECUTABLE:=$(BUILD_DIRECTORY)/$(ARCHIVER_EXECUTABLE_NAME)
 
 COMPILE_COMMANDS:=$(BUILD_DIRECTORY)/compile_commands.json
 
-###############################################################################
+################################################################################
 ## Get together the proper flags to compile.
-###############################################################################
+################################################################################
 
 define setup_vulkan_sdk
 	-L$(LD_LIBRARY_PATH-=) -l$(1) -I$(VULKAN_SDK)/include
@@ -90,7 +117,7 @@ endef
 
 define find_dependency 
 	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),$\
-		$(shell pkg-config --cflags $(1)),$\
+		$(shell pkg-config --cflags --libs $(1)),$\
 		$(call find_library,$(1)))
 endef
 
@@ -101,40 +128,52 @@ DEPENDENCIES:=vulkan xkbcommon wayland-client
 # compilation command prettier when echoed.
 CFLAGS+=$(foreach dep,$(DEPENDENCIES),$(strip $(call find_dependency,$(dep))))
 
-###############################################################################
-## Define the project's build recipies.
-###############################################################################
+################################################################################
+## Define the project's build recipes.
+################################################################################
 
-all: $(PUBLIC_LIBRARY) $(ARCHIVER_EXECUTABLE)
+define find_mode
+	$(if $(wildcard $(BUILD_DIRECTORY)/$(1).mode),clean,) 
+endef
+
+all: $(BUILD_DIRECTORY) $(PUBLIC_LIBRARY) $(ARCHIVER_EXECUTABLE) 
 
 clean:
 	rm -rf $(BUILD_DIRECTORY)
 
-$(COMPILE_COMMANDS): $(PUBLIC_LIBRARY_OUTPUTS) $(ARCHIVER_EXECUTABLE_OUTPUTS) | $(BUILD_DIRECTORY)
-	$(if $(shell command -v compiledb),compiledb -n -o $(COMPILE_COMMANDS) $(MAKE) debug GENERATING=on)
-
-debug: CFLAGS+=-Og -g3 -ggdb -fanalyzer -fsanitize=leak -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined
-debug: $(PUBLIC_LIBRARY) $(ARCHIVER_EXECUTABLE) $(if $(strip $(GENERATING)),,$(COMPILE_COMMANDS))
+debug: CFLAGS+=-Og -g3 -ggdb -fanalyzer -fsanitize=leak -fsanitize=address $\
+	-fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined
+debug: $(call find_mode,release) all $(COMPILEDB) $(BUILD_DIRECTORY)/debug.mode
 
 release: CFLAGS+=-march=native -mtune=native -Ofast -flto
-release: all
+release: $(call find_mode,debug) all $(BUILD_DIRECTORY)/release.mode
 
-$(PUBLIC_LIBRARY): $(PUBLIC_LIBRARY_OUTPUTS) $(INTERNAL_INTERFACES) $(PUBLIC_LIBRARY_INTERFACE) 
+$(BUILD_DIRECTORY)/debug.mode:
+	touch $(BUILD_DIRECTORY)/debug.mode
+
+$(BUILD_DIRECTORY)/release.mode:
+	touch $(BUILD_DIRECTORY)/release.mode
+
+$(COMPILEDB):
+	$(if $(strip $(GENERATING)),,$\
+		$(if $(shell command -v compiledb),$\
+			compiledb -n -o $(COMPILE_COMMANDS) $(MAKE) debug GENERATING=on,$\
+		)$\
+	)
+
+$(PUBLIC_LIBRARY): $(PUBLIC_LIBRARY_OUTPUTS) $(INTERNAL_INTERFACES)
 	$(AR) -qcs $(PUBLIC_LIBRARY) $(PUBLIC_LIBRARY_OUTPUTS) 
 
 $(ARCHIVER_EXECUTABLE): $(ARCHIVER_EXECUTABLE_OUTPUTS) $(ARCHIVER_INTERFACES)
 	$(CC) $(ARCHIVER_EXECUTABLE_OUTPUTS) -o $(ARCHIVER_EXECUTABLE) $(CFLAGS)
 
-$(BUILD_DIRECTORY)/waterlily.o: $(SOURCE_DIRECTORY)/waterlily.c | $(BUILD_DIRECTORY)
+$(BUILD_DIRECTORY)/%.o: $(SOURCE_DIRECTORY)/%.c 
 	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $< 
 
-$(BUILD_DIRECTORY)/archiver.o: $(SOURCE_DIRECTORY)/archiver.c | $(BUILD_DIRECTORY)
-	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $< 
-
-$(INTERNAL_BUILD_DIRECTORY)/%.o: $(INTERNAL_SOURCE_DIRECTORY)/%.c | $(BUILD_DIRECTORY)
+$(INTERNAL_BUILD_DIRECTORY)/%.o: $(INTERNAL_SOURCE_DIRECTORY)/%.c
 	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $<
 
-$(ARCHIVER_BUILD_DIRECTORY)/%.o: $(ARCHIVER_SOURCE_DIRECTORY)/%.c | $(BUILD_DIRECTORY)
+$(ARCHIVER_BUILD_DIRECTORY)/%.o: $(ARCHIVER_SOURCE_DIRECTORY)/%.c
 	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $<
 
 $(BUILD_DIRECTORY):
