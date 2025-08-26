@@ -78,11 +78,11 @@ $(if $(shell pkg-config --exists $(1); echo $$?),$\
 	$(shell pkg-config --cflags --libs $(1)),echo "not found")
 endef
 
-CFLAGS+=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE_DIRECTORY)
-CFLAGS+=$(if $(strip $(DEBUG)),-Og -g3 -ggdb -fanalyzer -fsanitize=leak $\
-			-fsanitize=address -fsanitize=pointer-compare $\
-			-fsanitize=pointer-subtract -fsanitize=undefined,-march=native $\
-			-mtune=native -Ofast -flto)
+CFLAGS:=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE_DIRECTORY)
+
+define add_flags
+	CFLAGS+=$(1)
+endef
 
 DEPENDENCIES:=vulkan xkbcommon wayland-client
 # We strip the output in case the cflags poll turns up empty. Makes the
@@ -98,8 +98,12 @@ all: $(PUBLIC_LIBRARY) $(ARCHIVER_EXECUTABLE)
 clean:
 	rm -rf $(BUILD_DIRECTORY)
 
-compiledb:
-	compiledb make
+debug: CFLAGS+=-Og -g3 -ggdb -fanalyzer -fsanitize=leak -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined
+debug: all
+	$(if $(strip $(GENERATING)),,$(if $(shell command -v compiledb),$(shell compiledb -o $(BUILD_DIRECTORY)/compile_commands.json make debug GENERATING=on)))
+
+release: CFLAGS+=-march=native -mtune=native -Ofast -flto
+release: all
 
 $(PUBLIC_LIBRARY): $(PUBLIC_LIBRARY_OUTPUTS) $(INTERNAL_INTERFACES) $(PUBLIC_LIBRARY_INTERFACE) 
 	$(AR) -qcs $(PUBLIC_LIBRARY) $(PUBLIC_LIBRARY_OUTPUTS) 
