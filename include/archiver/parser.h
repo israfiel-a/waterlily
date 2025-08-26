@@ -1,0 +1,7 @@
+#ifndef WATERLILY_ARCHIVER_PARSER_H
+#define WATERLILY_ARCHIVER_PARSER_H
+
+void placeholder2(void);
+
+#endif // WATERLILY_ARCHIVER_PARSER_H
+

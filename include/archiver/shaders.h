@@ -1,0 +1,7 @@
+#ifndef WATERLILY_ARCHIVER_SHADERS_H
+#define WATERLILY_ARCHIVER_SHADERS_H
+
+void placeholder3(void);
+
+#endif // WATERLILY_ARCHIVER_SHADERS_H
+

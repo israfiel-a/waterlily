@@ -30,11 +30,14 @@
  * <https://www.gnu.org/licenses/>.
  */
 
-#include "internal.h"
-
+#include <internal/input.h>
+#include <internal/logging.h>
+#include <internal/window.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
+static struct waterlily_window_context context = {0};
 
 /**
  * @brief Convert an interface into a double-referenced pointer via some casting
@@ -181,14 +184,14 @@ struct xdg_wm_base_listener
 /**
  * @copydoc xdg_surface_listener::configure
  */
-static void configure(void *d, void *t, uint32_t s)
+static void configure(void *, void *t, uint32_t s)
 {
     // Acknowlege the configuration. (xdg_surface_ack_configure)
     (void)wl_proxy_marshal_flags((struct wl_proxy *)t, 4, nullptr,
                                  wl_proxy_get_version((struct wl_proxy *)t), 0,
                                  s);
-    wl_surface_commit(d);
-    waterlily_engine_log(SUCCESS, "Configure request completed.");
+    wl_surface_commit(context.surface);
+    waterlily_log(SUCCESS, "Configure request completed.");
 }
 
 /**
@@ -222,24 +225,20 @@ struct xdg_surface_listener
 /**
  * @copydoc xdg_toplevel_listener::topConfigure
  */
-static void topConfigure(void *d, void *, int32_t w, int32_t h,
+static void topConfigure(void *, void *, int32_t w, int32_t h,
                          struct wl_array *s)
 {
-    waterlily_engine_log(INFO, "Configure request recieved.");
+    waterlily_log(INFO, "Configure request recieved.");
 
-    waterlily_context_t *context = d;
-    uint32_t width = w * context->window.scale;
-    uint32_t height = h * context->window.scale;
-    if (context->window.extent.width != width &&
-        context->window.extent.height != height)
+    uint32_t width = w * context.scale;
+    uint32_t height = h * context.scale;
+    if (context.width != width && context.height != height)
     {
-        context->window.resized = true;
-        context->window.extent.width = width;
-        context->window.extent.height = height;
-        waterlily_vulkan_getExtentSurface(context);
-        waterlily_engine_log(INFO, "Window dimensions adjusted: %dx%d.",
-                             context->window.extent.width,
-                             context->window.extent.height);
+        context.resized = true;
+        context.width = width;
+        context.height = height;
+        waterlily_log(INFO, "Window dimensions adjusted: %dx%d.", context.width,
+                      context.height);
     }
 
     int32_t *i;
@@ -248,17 +247,16 @@ static void topConfigure(void *d, void *, int32_t w, int32_t h,
         switch (*i)
         {
             case 2:
-                waterlily_engine_log(INFO, "The window is now fullscreened.");
+                waterlily_log(INFO, "The window is now fullscreened.");
                 break;
             case 4:
-                waterlily_engine_log(INFO, "The window is now activated.");
+                waterlily_log(INFO, "The window is now activated.");
                 break;
             case 9:
-                waterlily_engine_log(INFO, "The window is now suspended.");
+                waterlily_log(INFO, "The window is now suspended.");
                 break;
             default:
-                waterlily_engine_log(ERROR, "Got unknown state value '%d'.",
-                                     *i);
+                waterlily_report("Got unknown state value '%d'.", *i);
                 break;
         }
     }
@@ -267,10 +265,10 @@ static void topConfigure(void *d, void *, int32_t w, int32_t h,
 /**
  * @copydoc xdg_toplevel_listener::close
  */
-static void closeToplevel(void *d, void *)
+static void closeToplevel(void *, void *)
 {
-    waterlily_context_t *context = d;
-    context->window.close = true;
+    waterlily_log(INFO, "Window close requested.");
+    context.close = true;
 }
 
 /**
@@ -286,11 +284,11 @@ static void capabilities(void *, void *, struct wl_array *c)
     int32_t *i;
     wl_array_for_each(i, c) if (*i == 3)
     {
-        waterlily_engine_log(SUCCESS, "Found fullscreen support.");
+        waterlily_log(SUCCESS, "Found fullscreen support.");
         return;
     }
 
-    waterlily_engine_log(ERROR, "No fullscreen support available.");
+    waterlily_report("No fullscreen support available.");
 }
 
 /**
@@ -393,38 +391,33 @@ static void mode(void *, struct wl_output *, uint32_t, int32_t, int32_t,
 
 static void finish(void *, struct wl_output *) {}
 
-static void scale(void *d, struct wl_output *, int32_t s)
+static void scale(void *, struct wl_output *, int32_t s)
 {
-    waterlily_context_t *context = d;
-    context->window.scale = s;
-    waterlily_engine_log(INFO, "Monitor scale %d.", context->window.scale);
+    context.scale = s;
+    waterlily_log(INFO, "Monitor scale %d.", context.scale);
 }
 
 static void name(void *, struct wl_output *, const char *) {}
 
 static void description(void *, struct wl_output *, const char *) {}
 
-static void keymap(void *d, struct wl_keyboard *, uint32_t f, int32_t m,
+static void keymap(void *, struct wl_keyboard *, uint32_t f, int32_t m,
                    uint32_t s)
 {
-    waterlily_context_t *context = d;
-
     if (f != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1)
     {
-        waterlily_engine_log(ERROR, "Got unsupported keyboard format '%d'.", f);
-        context->window.close = true;
+        waterlily_report("Got unsupported keyboard format '%d'.", f);
         return;
     }
 
     char *map_shm = mmap(NULL, s, PROT_READ, MAP_PRIVATE, m, 0);
     if (map_shm == MAP_FAILED)
     {
-        waterlily_engine_log(ERROR, "Failed to map keymap file.");
-        context->window.close = true;
+        waterlily_report("Failed to map keymap file.");
         return;
     }
 
-    waterlily_input_setKeymap(context, map_shm);
+    waterlily_createInputContext(map_shm);
     munmap(map_shm, s);
     close(m);
 }
@@ -438,205 +431,165 @@ static void leave(void *, struct wl_keyboard *, uint32_t, struct wl_surface *)
 {
 }
 
-void key(void *d, struct wl_keyboard *, uint32_t, uint32_t t, uint32_t k,
+void key(void *, struct wl_keyboard *, uint32_t, uint32_t t, uint32_t k,
          uint32_t s)
 {
-    waterlily_context_t *context = d;
-    if (t - context->input.down[0].timestamp > WATERLILY_KEY_TIMER_MS)
-    {
-        context->input.down[0] = (waterlily_key_t){
-            t,
-            xkb_state_key_get_one_sym(context->input.state, k + 8),
-            s,
-        };
-        return;
-    }
-    else if (t - context->input.down[1].timestamp > WATERLILY_KEY_TIMER_MS)
-    {
-        context->input.down[1] = (waterlily_key_t){
-            t,
-            xkb_state_key_get_one_sym(context->input.state, k + 8),
-            s,
-        };
-        return;
-    }
+    waterlily_updateKeysDown(k + 8, t, s);
 }
 
-void modifiers(void *d, struct wl_keyboard *, uint32_t, uint32_t p, uint32_t a,
+void modifiers(void *, struct wl_keyboard *, uint32_t, uint32_t p, uint32_t a,
                uint32_t l, uint32_t g)
 {
-    waterlily_context_t *context = d;
-    waterlily_input_updateModifiers(context, p, a, l, g);
+    waterlily_updateModifiersDown(p, a, l, g);
 }
 
 void repeatInfo(void *, struct wl_keyboard *, int32_t, int32_t) {}
 
 static void capabilitiesChange(void *, struct wl_seat *, uint32_t) {}
 
-static void seatName(void *d, struct wl_seat *, const char *name)
+static void seatName(void *, struct wl_seat *, const char *name)
 {
-    waterlily_engine_log(INFO, "Seat named '%s'.", name);
+    waterlily_log(INFO, "Seat named '%s'.", name);
 
-    waterlily_context_t *context = d;
-    context->window.data.keyboard =
-        wl_seat_get_keyboard(context->window.data.seat);
+    context.keyboard = wl_seat_get_keyboard(context.seat);
     struct wl_keyboard_listener keyboardListener = {
         keymap, enter, leave, key, modifiers, repeatInfo};
-    wl_keyboard_add_listener(context->window.data.keyboard, &keyboardListener,
-                             context);
+    wl_keyboard_add_listener(context.keyboard, &keyboardListener, nullptr);
 }
 
-static void global(void *d, struct wl_registry *registry,
-                   uint32_t interfaceName, const char *interface,
-                   uint32_t version)
+static void global(void *, struct wl_registry *registry, uint32_t interfaceName,
+                   const char *interface, uint32_t version)
 {
-    waterlily_context_t *context = d;
-
     if (strcmp(interface, wl_compositor_interface.name) == 0)
     {
-        context->window.data.compositor = wl_registry_bind(
+        context.compositor = wl_registry_bind(
             registry, interfaceName, &wl_compositor_interface, version);
-        waterlily_engine_log(SUCCESS, "Connected to compositor v%d.", version);
+        waterlily_log(SUCCESS, "Connected to compositor v%d.", version);
         return;
     }
     else if (strcmp(interface, "xdg_wm_base") == 0)
     {
-        context->window.data.shell = wl_registry_bind(
-            registry, interfaceName, &pXDGShellInterface, version);
+        context.shell = wl_registry_bind(registry, interfaceName,
+                                         &pXDGShellInterface, version);
         struct xdg_wm_base_listener shellListener = {&ping};
         // xdg_wm_base_add_listener
-        (void)wl_proxy_add_listener(
-            (struct wl_proxy *)context->window.data.shell,
-            (void (**)(void))&shellListener, nullptr);
-        waterlily_engine_log(SUCCESS, "Connected to window manager v%d.",
-                             version);
+        (void)wl_proxy_add_listener((struct wl_proxy *)context.shell,
+                                    (void (**)(void))&shellListener, nullptr);
+        waterlily_log(SUCCESS, "Connected to window manager v%d.", version);
         return;
     }
     else if (strcmp(interface, wl_output_interface.name) == 0)
     {
-        context->window.data.output = wl_registry_bind(
-            registry, interfaceName, &wl_output_interface, version);
+        context.output = wl_registry_bind(registry, interfaceName,
+                                          &wl_output_interface, version);
         struct wl_output_listener outputListener = {
             &geometry, &mode, &finish, &scale, &name, &description};
-        (void)wl_output_add_listener(context->window.data.output,
-                                     &outputListener, context);
-        waterlily_engine_log(SUCCESS, "Connected to output device v%d.",
-                             version);
+        (void)wl_output_add_listener(context.output, &outputListener, nullptr);
+        waterlily_log(SUCCESS, "Connected to output device v%d.", version);
         return;
     }
     else if (strcmp(interface, wl_seat_interface.name) == 0)
     {
-        context->window.data.seat = wl_registry_bind(
-            registry, interfaceName, &wl_seat_interface, version);
+        context.seat = wl_registry_bind(registry, interfaceName,
+                                        &wl_seat_interface, version);
         struct wl_seat_listener seatListener = {&capabilitiesChange, &seatName};
-        (void)wl_seat_add_listener(context->window.data.seat, &seatListener,
-                                   context);
-        waterlily_engine_log(SUCCESS, "Connected to seat device v%d.", version);
+        (void)wl_seat_add_listener(context.seat, &seatListener, nullptr);
+        waterlily_log(SUCCESS, "Connected to seat device v%d.", version);
         return;
     }
 
-    waterlily_engine_log(INFO, "Found unknown interface '%s'.", interface);
+    waterlily_log(INFO, "Found unknown interface '%s'.", interface);
 }
 
 static void globalRemove(void *, struct wl_registry *, uint32_t) {}
 
-bool waterlily_window_create(const char *const title,
-                             waterlily_context_t *context)
+struct waterlily_window_context *
+waterlily_createWindowContext(struct waterlily_configuration *config)
 {
-    context->window.data.display = wl_display_connect(nullptr);
-    if (__builtin_expect(context->window.data.display == nullptr, false))
-    {
-        waterlily_engine_log(ERROR, "Failed to connect to display server.");
-        return false;
-    }
+    context.display = wl_display_connect(nullptr);
+    if (__builtin_expect(context.display == nullptr, false))
+        waterlily_report("Failed to connect to display server.");
 
-    context->window.data.registry =
-        wl_display_get_registry(context->window.data.display);
+    context.registry = wl_display_get_registry(context.display);
     struct wl_registry_listener registryListener = {&global, &globalRemove};
-    (void)wl_registry_add_listener(context->window.data.registry,
-                                   &registryListener, context);
-    (void)wl_display_roundtrip(context->window.data.display);
+    (void)wl_registry_add_listener(context.registry, &registryListener,
+                                   nullptr);
+    (void)wl_display_roundtrip(context.display);
 
-    context->window.data.surface =
-        wl_compositor_create_surface(context->window.data.compositor);
+    context.surface = wl_compositor_create_surface(context.compositor);
     // xdg_wm_base_get_xdg_surface
-    context->window.data.shellSurface =
-        (struct xdg_surface *)wl_proxy_marshal_flags(
-            (struct wl_proxy *)context->window.data.shell, 2,
-            &pXDGSurfaceInterface,
-            wl_proxy_get_version((struct wl_proxy *)context->window.data.shell),
-            0, nullptr, context->window.data.surface);
+    context.shellSurface = (struct xdg_surface *)wl_proxy_marshal_flags(
+        (struct wl_proxy *)context.shell, 2, &pXDGSurfaceInterface,
+        wl_proxy_get_version((struct wl_proxy *)context.shell), 0, nullptr,
+        context.surface);
     struct xdg_surface_listener shellSurfaceListener = {&configure};
     // xdg_surface_add_listener
-    (void)wl_proxy_add_listener(
-        (struct wl_proxy *)context->window.data.shellSurface,
-        (void (**)(void))&shellSurfaceListener, context->window.data.surface);
+    (void)wl_proxy_add_listener((struct wl_proxy *)context.shellSurface,
+                                (void (**)(void))&shellSurfaceListener,
+                                nullptr);
     // xdg_surface_get_toplevel
-    context->window.data.toplevel =
-        (struct xdg_toplevel *)wl_proxy_marshal_flags(
-            (struct wl_proxy *)context->window.data.shellSurface, 1,
-            &pXDGToplevelInterface,
-            wl_proxy_get_version(
-                (struct wl_proxy *)context->window.data.shellSurface),
-            0, nullptr);
+    context.toplevel = (struct xdg_toplevel *)wl_proxy_marshal_flags(
+        (struct wl_proxy *)context.shellSurface, 1, &pXDGToplevelInterface,
+        wl_proxy_get_version((struct wl_proxy *)context.shellSurface), 0,
+        nullptr);
     struct xdg_toplevel_listener toplevelListener = {
         &topConfigure, &closeToplevel, &bounds, &capabilities};
     // xdg_toplevel_add_listener
-    (void)wl_proxy_add_listener(
-        (struct wl_proxy *)context->window.data.toplevel,
-        (void (**)(void))&toplevelListener, context);
+    (void)wl_proxy_add_listener((struct wl_proxy *)context.toplevel,
+                                (void (**)(void))&toplevelListener, nullptr);
 
     // xdg_toplevel_set_title
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.toplevel, 2, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)context->window.data.toplevel),
-        0, title);
+        (struct wl_proxy *)context.toplevel, 2, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context.toplevel), 0,
+        config->title);
     // xdg_toplevel_set_app_id
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.toplevel, 3, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)context->window.data.toplevel),
-        0, title);
+        (struct wl_proxy *)context.toplevel, 3, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context.toplevel), 0,
+        config->title);
     // xdg_toplevel_set_fullscreen
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.toplevel, 11, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)context->window.data.toplevel),
-        0, context->window.data.output);
-    waterlily_engine_log(INFO, "Setup window properly.");
+        (struct wl_proxy *)context.toplevel, 11, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context.toplevel), 0,
+        context.output);
+    waterlily_log(INFO, "Setup window properly.");
 
-    return true;
+    return &context;
 }
 
-void waterlily_window_destroy(waterlily_context_t *context)
+void waterlily_destroyWindowContext(void)
 {
     // xdg_toplevel_destroy
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.toplevel, 0, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)context->window.data.toplevel),
+        (struct wl_proxy *)context.toplevel, 0, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context.toplevel),
         WL_MARSHAL_FLAG_DESTROY);
     // xdg_surface_destroy
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.shellSurface, 0, nullptr,
-        wl_proxy_get_version(
-            (struct wl_proxy *)context->window.data.shellSurface),
+        (struct wl_proxy *)context.shellSurface, 0, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context.shellSurface),
         WL_MARSHAL_FLAG_DESTROY);
     // xdg_wm_base_destroy
     (void)wl_proxy_marshal_flags(
-        (struct wl_proxy *)context->window.data.shell, 0, nullptr,
-        wl_proxy_get_version((struct wl_proxy *)context->window.data.shell),
+        (struct wl_proxy *)context.shell, 0, nullptr,
+        wl_proxy_get_version((struct wl_proxy *)context.shell),
         WL_MARSHAL_FLAG_DESTROY);
 
-    wl_surface_destroy(context->window.data.surface);
-    wl_compositor_destroy(context->window.data.compositor);
-    wl_output_release(context->window.data.output);
-    wl_keyboard_release(context->window.data.keyboard);
-    wl_seat_release(context->window.data.seat);
-    wl_registry_destroy(context->window.data.registry);
-    wl_display_disconnect(context->window.data.display);
+    wl_surface_destroy(context.surface);
+    wl_compositor_destroy(context.compositor);
+
+    wl_output_release(context.output);
+    wl_keyboard_release(context.keyboard);
+    wl_seat_release(context.seat);
+    waterlily_destroyInputContext();
+
+    wl_registry_destroy(context.registry);
+    wl_display_disconnect(context.display);
 }
 
-bool waterlily_window_process(waterlily_context_t *context)
+bool waterlily_processWindowEvents()
 {
-    return wl_display_dispatch_pending(context->window.data.display) != -1 &&
-           !context->window.close;
+    return wl_display_dispatch_pending(context.display) != -1;
 }
 

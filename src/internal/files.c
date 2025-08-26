@@ -1,13 +1,11 @@
-#include "internal/files.h"
-
-#include "internal.h"
-
+#include <internal/files.h>
+#include <internal/logging.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-static bool compileShaders(void)
+static void compileShaders(void)
 {
     const char *const stageNames[] = {
         "vertex",
@@ -32,12 +30,7 @@ static bool compileShaders(void)
             .name = currentPath,
         };
 
-        if (!waterlily_readFile(&file))
-        {
-            waterlily_engine_log(
-                ERROR, "Failed to open required shader stage '%s'.", stage);
-            return false;
-        }
+        waterlily_readFile(&file);
 
         outputFile.text.size = file.text.size + 3;
         char output[outputFile.text.size];
@@ -47,14 +40,10 @@ static bool compileShaders(void)
         output[file.text.size + 1] = 0xD;
         outputFile.text.contents = output;
 
-        if (!waterlily_writeFile(&outputFile, true))
-            return false;
-
+        waterlily_writeFile(&outputFile, true);
         waterlily_closeFile(&file);
     }
-
-    waterlily_engine_log(SUCCESS, "Compiled all shaders.");
-    return true;
+    waterlily_log(SUCCESS, "Compiled all shaders.");
 }
 
 static void getFilepath(char *filepath, waterlily_file_t *file)
@@ -67,18 +56,17 @@ static void getFilepath(char *filepath, waterlily_file_t *file)
 
     (void)sprintf(filepath, WATERLILY_ASSET_DIRECTORY "%s.wl%c", file->name,
                   extensions[file->type]);
-    waterlily_engine_log(INFO, "Got full path '%s'.", filepath);
+    waterlily_log(INFO, "Got full path '%s'.", filepath);
 }
 
-static bool digestValue(char *key, char *value, char *ch,
+static void digestValue(char *key, char *value, char *ch,
                         enum waterlily_config_key keyType,
                         waterlily_file_t *file)
 {
     if (value == nullptr)
     {
         *ch = 0;
-        waterlily_engine_log(ERROR, "No value given to key '%s'.", key);
-        return false;
+        waterlily_report("No value given to key '%s'.", key);
     }
 
     switch (keyType)
@@ -105,17 +93,13 @@ static bool digestValue(char *key, char *value, char *ch,
                 };
             break;
         default:
-            waterlily_engine_log(ERROR, "Unimplement configuration key %d.",
-                                 keyType);
-            return false;
+            waterlily_report("Unimplement configuration key %d.", keyType);
     }
     file->config.pairCount++;
-
     *ch = 0;
-    return true;
 }
 
-static bool parseConfig(waterlily_file_t *file)
+static void parseConfig(waterlily_file_t *file)
 {
     char *key = (char *)file->text.contents;
     char *value = nullptr;
@@ -127,13 +111,9 @@ static bool parseConfig(waterlily_file_t *file)
         if (*ch == ';')
         {
             if (value == nullptr)
-            {
-                waterlily_engine_log(ERROR, "Comment before value.");
-                return false;
-            }
+                waterlily_report("Comment before value.");
 
-            if (!digestValue(key, value, ch, keyType, file))
-                return false;
+            digestValue(key, value, ch, keyType, file);
 
             while (*ch != '\n' && *ch != '0')
                 ch++;
@@ -150,8 +130,7 @@ static bool parseConfig(waterlily_file_t *file)
             if (value != nullptr)
             {
                 *ch = 0;
-                waterlily_engine_log(ERROR, "Got double key ('%s').", key);
-                return false;
+                waterlily_report("Got double key ('%s').", key);
             }
 
             if (strncmp(key, "title", 5) == 0)
@@ -163,9 +142,7 @@ static bool parseConfig(waterlily_file_t *file)
             else
             {
                 *ch = 0;
-                waterlily_engine_log(
-                    ERROR, "Found unknown configuration key '%s'.", key);
-                return false;
+                waterlily_report("Found unknown configuration key '%s'.", key);
             }
             value = ch;
             continue;
@@ -173,16 +150,13 @@ static bool parseConfig(waterlily_file_t *file)
         else if (*ch != '\n')
             continue;
 
-        if (!digestValue(key, value, ch, keyType, file))
-            return false;
+        digestValue(key, value, ch, keyType, file);
         value = nullptr;
         key = ch + 1;
     }
-
-    return true;
 }
 
-static bool parseShader(waterlily_file_t *file)
+static void parseShader(waterlily_file_t *file)
 {
     char *currentShader = (char *)file->text.contents;
     char *cursor = currentShader;
@@ -194,13 +168,9 @@ static bool parseShader(waterlily_file_t *file)
             cursor++;
 
         if (*cursor == 0)
-        {
-            waterlily_engine_log(
-                ERROR,
+            waterlily_report(
                 "Malformed shader at index %zu (missing magic end number).",
                 shaderIndex);
-            return false;
-        }
 
         *cursor = 0;
         *(cursor + 1) = 0;
@@ -211,67 +181,48 @@ static bool parseShader(waterlily_file_t *file)
 
         cursor += 2;
     }
-
-    return true;
 }
 
-bool waterlily_readFile(waterlily_file_t *file)
+void waterlily_readFile(waterlily_file_t *file)
 {
-    waterlily_engine_log(INFO, "Opening file '%s' of type %d.", file->name,
-                         file->type);
+    waterlily_log(INFO, "Opening file '%s' of type %d.", file->name,
+                  file->type);
 
     size_t filepathLength =
         sizeof(WATERLILY_ASSET_DIRECTORY) + strlen(file->name) + 5;
     char filepath[filepathLength];
     getFilepath(filepath, file);
 
-    if (access(filepath, R_OK) != 0 &&
-        (file->type != WATERLILY_SHADER_FILE || !compileShaders()))
+    if (access(filepath, R_OK) != 0)
     {
-        waterlily_engine_log(ERROR, "File is not accessible.");
-        return false;
+        if (file->type != WATERLILY_SHADER_FILE)
+            compileShaders();
+        else
+            waterlily_report("File is not accessible.");
     }
-    waterlily_engine_log(SUCCESS, "File correctly accessible.");
+    waterlily_log(SUCCESS, "File correctly accessible.");
 
     FILE *handle = fopen(filepath, "r");
     if (handle == nullptr)
-    {
-        waterlily_engine_log(ERROR, "Failed to open file.");
-        return false;
-    }
-    waterlily_engine_log(SUCCESS, "Opened file handle.");
+        waterlily_report("Failed to open file.");
+    waterlily_log(SUCCESS, "Opened file handle.");
 
     struct stat stat;
     if (fstat(fileno(handle), &stat) != 0)
-    {
-        waterlily_engine_log(ERROR, "Failed to stat file.");
-
-        if (fclose(handle) != 0)
-            waterlily_engine_log(ERROR, "Failed to close file.");
-        return false;
-    }
-    waterlily_engine_log(SUCCESS, "Statted file.");
+        waterlily_report("Failed to stat file.");
+    waterlily_log(SUCCESS, "Statted file.");
 
     char contents[stat.st_size + 1];
     size_t read = fread(contents, 1, stat.st_size, handle);
     if (read != (size_t)stat.st_size)
-    {
-        waterlily_engine_log(
-            ERROR, "Failed to read file, could only read %zu bytes.", read);
-
-        if (fclose(handle) != 0)
-            waterlily_engine_log(ERROR, "Failed to close file.");
-        return false;
-    }
+        waterlily_report("Failed to read file, could only read %zu bytes.",
+                         read);
     contents[stat.st_size] = 0;
-    waterlily_engine_log(SUCCESS, "Read %zu bytes from file.", read);
+    waterlily_log(SUCCESS, "Read %zu bytes from file.", read);
 
     if (fclose(handle) != 0)
-    {
-        waterlily_engine_log(ERROR, "Failed to close file.");
-        return false;
-    }
-    waterlily_engine_log(INFO, "Closed file handle.");
+        waterlily_report("Failed to close file.");
+    waterlily_log(INFO, "Closed file handle.");
 
     switch (file->type)
     {
@@ -281,23 +232,19 @@ bool waterlily_readFile(waterlily_file_t *file)
             break;
         case WATERLILY_SHADER_FILE:
             file->text.contents = contents;
-            if (!parseShader(file))
-                return false;
+            parseShader(file);
             break;
         case WATERLILY_CONFIG_FILE:
             file->text.contents = contents;
-            if (!parseConfig(file))
-                return false;
+            parseConfig(file);
             break;
     }
-
-    return true;
 }
 
-bool waterlily_writeFile(waterlily_file_t *file, bool append)
+void waterlily_writeFile(waterlily_file_t *file, bool append)
 {
-    waterlily_engine_log(INFO, "Writing to file '%s' of type %d.", file->name,
-                         file->type);
+    waterlily_log(INFO, "Writing to file '%s' of type %d.", file->name,
+                  file->type);
 
     size_t filepathLength =
         sizeof(WATERLILY_ASSET_DIRECTORY) + strlen(file->name) + 5;
@@ -306,32 +253,18 @@ bool waterlily_writeFile(waterlily_file_t *file, bool append)
 
     FILE *handle = fopen(filepath, (append ? "a" : "w"));
     if (handle == nullptr)
-    {
-        waterlily_engine_log(ERROR, "Failed to open file.");
-        return false;
-    }
-    waterlily_engine_log(SUCCESS, "Opened file handle.");
+        waterlily_report("Failed to open file.");
+    waterlily_log(SUCCESS, "Opened file handle.");
 
     size_t wrote = fwrite(file->text.contents, 1, file->text.size, handle);
     if (wrote != file->text.size)
-    {
-        waterlily_engine_log(
-            ERROR, "Failed to write to file, only wrote %zu bytes", wrote);
-
-        if (fclose(handle) != 0)
-            waterlily_engine_log(ERROR, "Failed to close file.");
-        return false;
-    }
-    waterlily_engine_log(SUCCESS, "Wrote %zu bytes to file.", wrote);
+        waterlily_report("Failed to write to file, only wrote %zu bytes",
+                         wrote);
+    waterlily_log(SUCCESS, "Wrote %zu bytes to file.", wrote);
 
     if (fclose(handle) != 0)
-    {
-        waterlily_engine_log(ERROR, "Failed to close file.");
-        return false;
-    }
-    waterlily_engine_log(INFO, "Closed file handle.");
-
-    return true;
+        waterlily_report("Failed to close file.");
+    waterlily_log(INFO, "Closed file handle.");
 }
 
 void waterlily_closeFile(waterlily_file_t *file) { (void)file; }

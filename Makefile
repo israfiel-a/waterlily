@@ -18,130 +18,107 @@
 ## with this program.  If not, see <https://www.gnu.org/licenses/>.
 ###############################################################################
 
-.PHONY: all clean prep install export_commands
+.PHONY: all clean 
 
 ###############################################################################
-## Utility functions/macros to simplify common tasks.
+## Figure out the source structure of the project.
 ###############################################################################
 
-# I hate that this has to exist, but Make is a bitch and all the "better" ways
-# have failed.
-define setup_vulkan_sdk
-	FOUND_LIBS+= -L$(LD_LIBRARY_PATH:-=) -l$(1)
-	FOUND_INCS+= -I$(VULKAN_SDK)/include
+SOURCE_DIRECTORY_NAME:=src
+INCLUDE_DIRECTORY_NAME:=include
+INTERNAL_DIRECTORY_NAME:=internal
+ARCHIVER_DIRECTORY_NAME:=archiver
+
+PUBLIC_LIBRARY_INTERFACE_NAME:=waterlily
+ARCHIVER_EXECUTABLE_ENTRY_NAME:=archiver
+PUBLIC_LIBRARY_SOURCE_NAMES:=config files input logging vulkan window
+ARCHIVER_EXECUTABLE_SOURCE_NAMES:=compressor parser shaders logging
+
+SOURCE_DIRECTORY:=$(abspath $(SOURCE_DIRECTORY_NAME))
+INTERNAL_SOURCE_DIRECTORY:=$(SOURCE_DIRECTORY)/$(INTERNAL_DIRECTORY_NAME)
+ARCHIVER_SOURCE_DIRECTORY:=$(SOURCE_DIRECTORY)/$(ARCHIVER_DIRECTORY_NAME)
+
+INCLUDE_DIRECTORY:=$(abspath $(INCLUDE_DIRECTORY_NAME))
+# We don't actually give the compilation these variables for the sake of include clarity, but we use them to construct the full source file paths.
+INTERNAL_INCLUDE_DIRECTORY:=$(INCLUDE_DIRECTORY)/$(INTERNAL_DIRECTORY_NAME)
+ARCHIVER_INCLUDE_DIRECTORY:=$(INCLUDE_DIRECTORY)/$(ARCHIVER_DIRECTORY_NAME)
+
+PUBLIC_LIBRARY_SOURCES:=$(foreach source,$(PUBLIC_LIBRARY_SOURCE_NAMES),$(abspath $(INTERNAL_SOURCE_DIRECTORY)/$(source).c)) $(abspath $(SOURCE_DIRECTORY)/$(PUBLIC_LIBRARY_INTERFACE_NAME).c)
+ARCHIVER_EXECUTABLE_SOURCES:=$(foreach source,$(ARCHIVER_EXECUTABLE_SOURCE_NAMES),$(if $(wildcard $(ARCHIVER_SOURCE_DIRECTORY)/$(source).c),$(ARCHIVER_SOURCE_DIRECTORY)/$(source).c),$(INTERNAL_SOURCE_DIRECTORY)/$(source).c) $(abspath $(SOURCE_DIRECTORY)/$(ARCHIVER_EXECUTABLE_ENTRY_NAME).c)
+
+PUBLIC_LIBRARY_INTERFACE:=$(abspath $(INCLUDE_DIRECTORY)/$(PUBLIC_LIBRARY_INTERFACE_NAME).h)
+INTERNAL_INTERFACES:=$(foreach interface,$(PUBLIC_LIBRARY_SOURCE_NAMES),$(abspath $(INTERNAL_INCLUDE_DIRECTORY)/$(interface).h))
+ARCHIVER_INTERFACES:=$(foreach interface,$(ARCHIVER_EXECUTABLE_SOURCE_NAMES),$(if $(wildcard $(ARCHIVER_SOURCE_DIRECTORY)/$(interface).c),$(abspath $(ARCHIVER_INCLUDE_DIRECTORY)/$(interface).h),$(INTERNAL_INCLUDE_DIRECTORY)/$(interface.h)))
+
+###############################################################################
+## Figure out the build structure of the project.
+###############################################################################
+
+BUILD_DIRECTORY_NAME:=build
+
+PUBLIC_LIBRARY_NAME:=libwaterlily.a
+ARCHIVER_EXECUTABLE_NAME:=waterlilyarchiver
+
+BUILD_DIRECTORY:=$(abspath $(BUILD_DIRECTORY_NAME))
+INTERNAL_BUILD_DIRECTORY:=$(BUILD_DIRECTORY)/$(INTERNAL_DIRECTORY_NAME)
+ARCHIVER_BUILD_DIRECTORY:=$(BUILD_DIRECTORY)/$(ARCHIVER_DIRECTORY_NAME)
+
+PUBLIC_LIBRARY_OUTPUTS:=$(foreach source,$(PUBLIC_LIBRARY_SOURCE_NAMES),$(abspath $(INTERNAL_BUILD_DIRECTORY)/$(source).o)) $(abspath $(BUILD_DIRECTORY)/$(PUBLIC_LIBRARY_INTERFACE_NAME).o)
+ARCHIVER_EXECUTABLE_OUTPUTS:=$(foreach source,$(ARCHIVER_EXECUTABLE_SOURCE_NAMES),$(if $(wildcard $(ARCHIVER_SOURCE_DIRECTORY)/$(source).c),$(abspath $(ARCHIVER_BUILD_DIRECTORY)/$(source).o),$(INTERNAL_BUILD_DIRECTORY)/$(source).o)) $(abspath $(BUILD_DIRECTORY)/$(ARCHIVER_EXECUTABLE_ENTRY_NAME).o)
+
+PUBLIC_LIBRARY:=$(BUILD_DIRECTORY)/$(PUBLIC_LIBRARY_NAME)
+ARCHIVER_EXECUTABLE:=$(BUILD_DIRECTORY)/$(ARCHIVER_EXECUTABLE_NAME)
+
+###############################################################################
+## Get together the proper flags to compile.
+###############################################################################
+
+define find_dependency
+$(if $(shell pkg-config --exists $(1); echo $$?),$\
+	$(shell pkg-config --cflags --libs $(1)),echo "not found")
 endef
 
-define find_library
-	$(if $(findstring $(1),"vulkan"),$\
-		$(if $(strip $(LD_LIBRARY_PATH)),$\
-			$(call setup_vulkan_sdk,$(1)),),$\
-		$(if $(shell ldconfig -p | grep libvulkan),$\
-			FOUND_LIBS+= -l$(1),$\
-			$(error "Failed to find $(1)")))
-endef
-
-define find_pkg 
-	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),$\
-		CFLAGS+=$(shell pkg-config --cflags $(1)),$\
-		$(call find_library,$(1)))
-endef
-
-###############################################################################
-## Figure out the directory and dependency structure of the project build.
-###############################################################################
-
-BUILD:=$(abspath build)
-PREFIX=/usr
-SOURCE:=$(abspath src)
-INCLUDE:=$(abspath include)
-
-PUBLIC_DIR=$(PREFIX)/include/waterlily
-LIB_DIR=$(PREFIX)/lib
-CONFIG_DIR=$(PREFIX)/share/pkgconfig
-DEPENDENCIES=vulkan wayland-client xkbcommon
-
-###############################################################################
-## Set up the flags we're going to use in all compilations.
-###############################################################################
-
-CFLAGS+=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE)
+CFLAGS+=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE_DIRECTORY)
 CFLAGS+=$(if $(strip $(DEBUG)),-Og -g3 -ggdb -fanalyzer -fsanitize=leak $\
 			-fsanitize=address -fsanitize=pointer-compare $\
 			-fsanitize=pointer-subtract -fsanitize=undefined,-march=native $\
 			-mtune=native -Ofast -flto)
 
-ARFLAGS:=qcs
+DEPENDENCIES:=vulkan xkbcommon wayland-client
+# We strip the output in case the cflags poll turns up empty. Makes the
+# compilation command prettier when echoed.
+CFLAGS+=$(foreach dep,$(DEPENDENCIES),$(strip $(call find_dependency,$(dep))))
 
 ###############################################################################
-## Define the project's output files.
+## Define the project's build recipies.
 ###############################################################################
 
-OBJECTS:=engine.o files.o input.o public.o vulkan.o window.o
-OUTPUTS:=$(foreach obj, $(OBJECTS), $(addprefix $(BUILD)/, $(obj)))
-
-LIBRARY_NAME:=libwaterlily.a
-CONFIG_NAME:=waterlily.pc
-PUBLIC_NAME:=waterlily.h
-INTERNAL_NAME:=internal.h
-
-LIBRARY:=$(BUILD)/$(LIBRARY_NAME)
-CONFIG:=$(BUILD)/$(CONFIG_NAME)
-PUBLIC:=$(INCLUDE)/$(PUBLIC_NAME)
-INTERNAL:=$(SOURCE)/$(INTERNAL_NAME)
-
-###############################################################################
-## Define the project's setup tasks.
-###############################################################################
-
-EXPORT_COMMAND:=grep -wE '$(CC)'$\
-	| grep -w '\-c'$\
-	| jq -nR '[inputs|{directory:"$(BUILD)",$\
-		command:.,$\
-		file:match(" [^ ]+$$").string[1:],$\
-		output:"$(BUILD)"+match(" [^ ]+$$").$\
-			string[1+("$(SOURCE)"|length):-2]+".o"}]'$\
-	> $(BUILD)/compile_commands.json
-
-all: $(LIBRARY) 
-
-prep:
-	$(foreach dep, $(DEPENDENCIES), $(eval $(call find_pkg,$(dep))))
+all: $(PUBLIC_LIBRARY) $(ARCHIVER_EXECUTABLE)
 
 clean:
-	$(RM) -rf $(BUILD)
+	rm -rf $(BUILD_DIRECTORY)
 
-export_commands: | $(BUILD) 
-	$(MAKE) EXPORT_COMMAND_RUN=on --always-make --dry-run | $(EXPORT_COMMAND) 
+compiledb:
+	compiledb make
 
-###############################################################################
-## Define the project's build tasks.
-###############################################################################
+$(PUBLIC_LIBRARY): $(PUBLIC_LIBRARY_OUTPUTS) $(INTERNAL_INTERFACES) $(PUBLIC_LIBRARY_INTERFACE) 
+	$(AR) -qcs $(PUBLIC_LIBRARY) $(PUBLIC_LIBRARY_OUTPUTS) 
 
-$(LIBRARY): $(OUTPUTS) $(PUBLIC) 
-	$(AR) $(ARFLAGS) $(LIBRARY) $(OUTPUTS)
+$(ARCHIVER_EXECUTABLE): $(ARCHIVER_EXECUTABLE_OUTPUTS) $(ARCHIVER_INTERFACES)
+	$(CC) $(ARCHIVER_EXECUTABLE_OUTPUTS) -o $(ARCHIVER_EXECUTABLE) $(CFLAGS)
 
-$(BUILD)/%.o: $(SOURCE)/%.c $(INTERNAL) $(PUBLIC) | $(BUILD) prep
-	$(CC) -c $(CFLAGS) $(FOUND_INCS) -DFILENAME=\"$(notdir $<)\" -o $@ $<
+$(BUILD_DIRECTORY)/waterlily.o: $(SOURCE_DIRECTORY)/waterlily.c | $(BUILD_DIRECTORY)
+	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $< 
 
-$(BUILD):
-	mkdir -p $(BUILD)
+$(BUILD_DIRECTORY)/archiver.o: $(SOURCE_DIRECTORY)/archiver.c | $(BUILD_DIRECTORY)
+	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $< 
 
-###############################################################################
-## Define the project's installation tasks.
-###############################################################################
+$(INTERNAL_BUILD_DIRECTORY)/%.o: $(INTERNAL_SOURCE_DIRECTORY)/%.c | $(BUILD_DIRECTORY)
+	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $<
 
-install: $(LIBRARY) $(CONFIG) 
-	install -m 644 -D $(LIBRARY) $(DESTDIR)$(LIB_DIR)/$(LIBRARY_NAME)
-	install -m 644 -D $(PUBLIC) $(DESTDIR)$(PUBLIC_DIR)/$(PUBLIC_NAME)
-	install -m 644 -D $(CONFIG) $(DESTDIR)$(CONFIG_DIR)/$(CONFIG_NAME)
+$(ARCHIVER_BUILD_DIRECTORY)/%.o: $(ARCHIVER_SOURCE_DIRECTORY)/%.c | $(BUILD_DIRECTORY)
+	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $<
 
-$(CONFIG): | $(BUILD)
-	$(file > $(CONFIG))
-	$(file >> $(CONFIG),Name: Waterlily)
-	$(file >> $(CONFIG),Description: A C library for creating RPG games.)
-	$(file >> $(CONFIG),URL: https://github.com/israfiel-a/waterlily.git)
-	$(file >> $(CONFIG),Version: 1.0.0)
-	$(file >> $(CONFIG),Requires: $(DEPENDENCIES))
-	$(file >> $(CONFIG),Cflags: -I$(PUBLIC_DIR)$(FOUND_INCS))
-	$(file >> $(CONFIG),Libs: -L$(LIB_DIR) -lwaterlily$(FOUND_LIBS))
+$(BUILD_DIRECTORY):
+	mkdir -p $(INTERNAL_BUILD_DIRECTORY) $(ARCHIVER_BUILD_DIRECTORY)
 

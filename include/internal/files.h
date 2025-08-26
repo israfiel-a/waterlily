@@ -54,8 +54,8 @@ typedef struct waterlily_file
     };
 } waterlily_file_t;
 
-bool waterlily_readFile(waterlily_file_t *file);
-bool waterlily_writeFile(waterlily_file_t *file, bool append);
+void waterlily_readFile(waterlily_file_t *file);
+void waterlily_writeFile(waterlily_file_t *file, bool append);
 void waterlily_closeFile(waterlily_file_t *file);
 
 #endif // WATERLILY_INTERNAL_FILES_H
