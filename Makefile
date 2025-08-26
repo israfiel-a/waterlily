@@ -76,7 +76,7 @@ COMPILE_COMMANDS:=$(BUILD_DIRECTORY)/compile_commands.json
 ###############################################################################
 
 define setup_vulkan_sdk
-	-L$(LD_LIBRARY_PATH:-=) -l$(1) -I$(VULKAN_SDK)/include
+	-L$(LD_LIBRARY_PATH-=) -l$(1) -I$(VULKAN_SDK)/include
 endef
 
 define find_library
