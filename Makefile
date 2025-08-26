@@ -96,10 +96,6 @@ endef
 
 CFLAGS:=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE_DIRECTORY)
 
-define add_flags
-	CFLAGS+=$(1)
-endef
-
 DEPENDENCIES:=vulkan xkbcommon wayland-client
 # We strip the output in case the cflags poll turns up empty. Makes the
 # compilation command prettier when echoed.
