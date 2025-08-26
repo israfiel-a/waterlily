@@ -75,17 +75,23 @@ COMPILE_COMMANDS:=$(BUILD_DIRECTORY)/compile_commands.json
 ## Get together the proper flags to compile.
 ###############################################################################
 
-define find_dependency
-$(if $(shell pkg-config --exists --print-errors $(1)),$\
-	$(if $(findstring $(1),vulkan),$\
-		$(if $(strip $(VULKAN_SDK)),$\
-			-L$(LD_LAYER_PATH) -lvulkan -I$(VULKAN_SDK)/include,$\
-			$(error "Missing Vulkan SDK path.")$\
-		),$\
-		$(error "Failed to find package.")$\
-	),$\
-	$(shell pkg-config --cflags --libs $(1))$\
-)
+define setup_vulkan_sdk
+	CFLAGS+= -L$(LD_LIBRARY_PATH:-=) -l$(1) -I$(VULKAN_SDK)/include
+endef
+
+define find_library
+	$(if $(findstring $(1),"vulkan"),$\
+		$(if $(strip $(LD_LIBRARY_PATH)),$\
+			$(call setup_vulkan_sdk,$(1)),),$\
+		$(if $(shell ldconfig -p | grep libvulkan),$\
+			CFLAGS+= -l$(1),$\
+			$(error "Failed to find $(1)")))
+endef
+
+define find_dependency 
+	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),$\
+		CFLAGS+=$(shell pkg-config --cflags $(1)),$\
+		$(call find_library,$(1)))
 endef
 
 CFLAGS:=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE_DIRECTORY)
