@@ -18,7 +18,7 @@
 ## with this program.  If not, see <https://www.gnu.org/licenses/>.
 ###############################################################################
 
-.PHONY: all clean 
+.PHONY: all clean debug release 
 
 ###############################################################################
 ## Figure out the source structure of the project.
