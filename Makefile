@@ -76,7 +76,7 @@ COMPILE_COMMANDS:=$(BUILD_DIRECTORY)/compile_commands.json
 ###############################################################################
 
 define find_dependency
-$(if $(shell pkg-config --exists --print-errors $(1)),$(if $(filter vulkan,$(1)),$(if $(strip $(VULKAN_SDK)),-L$(LD_LAYER_PATH) -lvulkan -I$(VULKAN_SDK)/include,$(error "Missing Vulkan SDK path.")),$(error "Failed to find package.")),$(shell pkg-config --cflags --libs $(1)))
+$(if $(shell pkg-config --exists --print-errors $(1)),$(if $(findstring $(1),vulkan),$(error "Missing Vulkan SDK path."),$(if $(strip $(VULKAN_SDK)),-L$(LD_LAYER_PATH) -lvulkan -I$(VULKAN_SDK)/include)),$(error "Failed to find package.")),$(shell pkg-config --cflags --libs $(1)))
 endef
 
 CFLAGS:=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE_DIRECTORY)
