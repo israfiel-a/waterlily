@@ -135,12 +135,13 @@ ARCHIVER_EXECUTABLE_DEPENDENCIES:=glslang
 
 define create_library
 	$(AR) -qcs $($(1)) $($(1)_OUTPUTS) -l $\
-		"$(strip $(call find_dependencies,$($(1)_DEPENDENCIES)))" 
+		"$(strip $(call find_dependencies,$($(1)_DEPENDENCIES))) $\
+		$(strip $(LDFLAGS))"
 endef
 
 define create_executable
 	$(CC) $($(1)_OUTPUTS) -o $($(1)) $(CFLAGS) $(strip $\
-		$(call find_dependencies,$($(1)_DEPENDENCIES))) 
+		$(call find_dependencies,$($(1)_DEPENDENCIES)))
 endef
 
 define find_mode
@@ -152,8 +153,9 @@ all: $(BUILD_DIRECTORY) $(PUBLIC_LIBRARY) $(ARCHIVER_EXECUTABLE)
 clean:
 	rm -rf $(BUILD_DIRECTORY)
 
-debug: CFLAGS+=-Og -g3 -ggdb -fanalyzer -fsanitize=leak -fsanitize=address $\
-	-fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined
+debug: CFLAGS+=-Og -g3 -ggdb -fanalyzer -fsanitize=address,leak,undefined $\
+	-fsanitize=pointer-compare,pointer-subtract 
+debug: LDFLAGS+=-fsanitize=leak,address,undefined
 debug: $(call find_mode,release) all $(COMPILEDB) $(BUILD_DIRECTORY)/debug.mode
 
 release: CFLAGS+=-march=native -mtune=native -Ofast -flto
