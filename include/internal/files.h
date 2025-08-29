@@ -18,7 +18,10 @@ typedef struct waterlily_file
     {
         WATERLILY_TEXT_FILE,
         WATERLILY_CONFIG_FILE,
+        WATERLILY_FRAGMENT_SHADER_FILE,
+        WATERLILY_VERTEX_SHADER_FILE,
         WATERLILY_SHADER_FILE,
+        WATERLILY_ARCHIVE_FILE
     } type;
     union
     {

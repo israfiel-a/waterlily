@@ -1,4 +1,5 @@
 #include <internal/logging.h>
+#include <archiver/compressor.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -17,6 +18,8 @@ int main(int argc, char **argv)
         return -1;
     }
     waterlily_log(SUCCESS, "Changed working directory to '%s'.", path);
+
+    waterlily_flattenAssets();
 
     return 0;
 }

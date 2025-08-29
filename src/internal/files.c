@@ -48,13 +48,15 @@ static void compileShaders(void)
 
 static void getFilepath(char *filepath, waterlily_file_t *file)
 {
-    static const char extensions[] = {
-        [WATERLILY_TEXT_FILE] = 't',
-        [WATERLILY_CONFIG_FILE] = 'c',
-        [WATERLILY_SHADER_FILE] = 's',
+    static const char *extensions[] = {
+        [WATERLILY_TEXT_FILE] = "txt",
+        [WATERLILY_CONFIG_FILE] = "config",
+        [WATERLILY_FRAGMENT_SHADER_FILE] = "frag",
+        [WATERLILY_VERTEX_SHADER_FILE] = "vert",
+        [WATERLILY_ARCHIVE_FILE] = "waterlily",
     };
 
-    (void)sprintf(filepath, WATERLILY_ASSET_DIRECTORY "%s.wl%c", file->name,
+    (void)sprintf(filepath, WATERLILY_ASSET_DIRECTORY "%s.%s", file->name,
                   extensions[file->type]);
     waterlily_log(INFO, "Got full path '%s'.", filepath);
 }
@@ -156,7 +158,7 @@ static void parseConfig(waterlily_file_t *file)
     }
 }
 
-static void parseShader(waterlily_file_t *file)
+static void parseShaderArchive(waterlily_file_t *file)
 {
     char *currentShader = (char *)file->text.contents;
     char *cursor = currentShader;
@@ -181,6 +183,10 @@ static void parseShader(waterlily_file_t *file)
 
         cursor += 2;
     }
+}
+
+static void parseArchiveFile(waterlily_file_t *file) {
+    (void)file;
 }
 
 void waterlily_readFile(waterlily_file_t *file)
@@ -224,19 +230,25 @@ void waterlily_readFile(waterlily_file_t *file)
         waterlily_report("Failed to close file.");
     waterlily_log(INFO, "Closed file handle.");
 
+    file->text.contents = contents;
     switch (file->type)
     {
         case WATERLILY_TEXT_FILE:
+            [[fallthrough]];
+        case WATERLILY_VERTEX_SHADER_FILE:
+            [[fallthrough]];
+        case WATERLILY_FRAGMENT_SHADER_FILE:
             file->text.contents = strdup(contents);
             file->text.size = stat.st_size;
             break;
         case WATERLILY_SHADER_FILE:
-            file->text.contents = contents;
-            parseShader(file);
+            parseShaderArchive(file);
             break;
         case WATERLILY_CONFIG_FILE:
-            file->text.contents = contents;
             parseConfig(file);
+            break;
+        case WATERLILY_ARCHIVE_FILE:
+            parseArchiveFile(file);
             break;
     }
 }
