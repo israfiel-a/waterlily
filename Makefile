@@ -115,22 +115,33 @@ define find_library
 			$(error "Failed to find $(1)")))
 endef
 
-define find_dependency 
-	$(if $(filter 0,$(shell pkg-config --exists $(1); echo $$?)),$\
-		$(shell pkg-config --cflags --libs $(1)),$\
-		$(call find_library,$(1)))
+define find_dependencies 
+	$(foreach dep,$(1),$\
+		$(if $(filter 0,$(shell pkg-config --exists $(dep); echo $$?)),$\
+			$(shell pkg-config --cflags --libs $(dep)),$\
+			$(call find_library,$(dep))$\
+		)$\
+	)
 endef
 
 CFLAGS:=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE_DIRECTORY)
 
-DEPENDENCIES:=vulkan xkbcommon wayland-client
-# We strip the output in case the cflags poll turns up empty. Makes the
-# compilation command prettier when echoed.
-CFLAGS+=$(foreach dep,$(DEPENDENCIES),$(strip $(call find_dependency,$(dep))))
+PUBLIC_LIBRARY_DEPENDENCIES:=vulkan xkbcommon wayland-client
+ARCHIVER_EXECUTABLE_DEPENDENCIES:=glslang
 
 ################################################################################
 ## Define the project's build recipes.
 ################################################################################
+
+define create_library
+	$(AR) -qcs $($(1)) $($(1)_OUTPUTS) -l $\
+		"$(strip $(call find_dependencies,$($(1)_DEPENDENCIES)))" 
+endef
+
+define create_executable
+	$(CC) $($(1)_OUTPUTS) -o $($(1)) $(CFLAGS) $(strip $\
+		$(call find_dependencies,$($(1)_DEPENDENCIES))) 
+endef
 
 define find_mode
 	$(if $(wildcard $(BUILD_DIRECTORY)/$(1).mode),clean,) 
@@ -162,10 +173,10 @@ $(COMPILEDB):
 	)
 
 $(PUBLIC_LIBRARY): $(PUBLIC_LIBRARY_OUTPUTS) $(INTERNAL_INTERFACES)
-	$(AR) -qcs $(PUBLIC_LIBRARY) $(PUBLIC_LIBRARY_OUTPUTS) 
+	$(call create_library,PUBLIC_LIBRARY)
 
 $(ARCHIVER_EXECUTABLE): $(ARCHIVER_EXECUTABLE_OUTPUTS) $(ARCHIVER_INTERFACES)
-	$(CC) $(ARCHIVER_EXECUTABLE_OUTPUTS) -o $(ARCHIVER_EXECUTABLE) $(CFLAGS)
+	$(call create_executable,ARCHIVER_EXECUTABLE)
 
 $(BUILD_DIRECTORY)/%.o: $(SOURCE_DIRECTORY)/%.c 
 	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $< 
