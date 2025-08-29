@@ -1,6 +1,7 @@
 #include <internal/files.h>
 #include <internal/logging.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -185,8 +186,69 @@ static void parseShaderArchive(waterlily_file_t *file)
     }
 }
 
-static void parseArchiveFile(waterlily_file_t *file) {
-    (void)file;
+static void parseShaderArchiveSection(char **cursor,
+                                      struct waterlily_archive_section *section)
+{
+    (*cursor)++;
+    while (**cursor != 0)
+    {
+        section->count++;
+        section->shaders = realloc(
+            &section->shaders,
+            sizeof(struct waterlily_archive_shader_section) * section->count);
+        section->shaders[section->count - 1].type = **cursor;
+        if (**cursor != 0x0 && **cursor != 0x1)
+            waterlily_report("Got unknown shader stage '%x'.", **cursor);
+
+        (*cursor)++;
+        section->shaders[section->count - 1].size = *(uint16_t *)(*cursor);
+        section->shaders[section->count - 1].code = (uint32_t *)strndup(
+            *cursor, section->shaders[section->count - 1].size);
+        (*cursor) += section->shaders[section->count - 1].size;
+    }
+}
+
+static void parseAssetArchiveFile(waterlily_file_t *file)
+{
+    char *cursor = (char *)file->text.contents;
+    while (*cursor != 0)
+    {
+        switch (*cursor)
+        {
+            case 0x0:
+                file->archive.assets.sectionCount++;
+                file->archive.assets.sections =
+                    realloc(file->archive.assets.sections,
+                            sizeof(struct waterlily_archive_section) *
+                                file->archive.assets.sectionCount);
+                file->archive.assets
+                    .sections[file->archive.assets.sectionCount - 1]
+                    .type = WATERLILY_SHADER_SECTION;
+                parseShaderArchiveSection(
+                    &cursor,
+                    &file->archive.assets
+                         .sections[file->archive.assets.sectionCount - 1]);
+                break;
+            default:
+                waterlily_report("Unknown asset archive section ID '%x'.",
+                                 *cursor);
+        }
+    }
+}
+
+static void parseArchiveFile(waterlily_file_t *file)
+{
+    switch (*file->text.contents)
+    {
+        case 0x0:
+            file->archive.type = WATERLILY_ASSET_ARCHIVE;
+            waterlily_log(INFO, "Got asset archive.");
+            parseAssetArchiveFile(file);
+            break;
+        default:
+            waterlily_report("Got unknown archive file type '%x'",
+                             *file->text.contents);
+    }
 }
 
 void waterlily_readFile(waterlily_file_t *file)

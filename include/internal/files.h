@@ -54,6 +54,41 @@ typedef struct waterlily_file
             uint32_t *code;
             size_t size;
         } shader[WATERLILY_SHADER_STAGES];
+        struct
+        {
+            enum
+            {
+                WATERLILY_ASSET_ARCHIVE
+            } type;
+            union
+            {
+                struct
+                {
+                    struct waterlily_archive_section
+                    {
+                        enum
+                        {
+                            WATERLILY_SHADER_SECTION
+                        } type;
+                        size_t count;
+                        union
+                        {
+                            struct waterlily_archive_shader_section
+                            {
+                                enum
+                                {
+                                    WATERLILY_VERTEX_SHADER,
+                                    WATERLILY_FRAGMENT_SHADER,
+                                } type;
+                                uint32_t *code;
+                                size_t size;
+                            } *shaders;
+                        };
+                    } *sections;
+                    size_t sectionCount;
+                } assets;
+            };
+        } archive;
     };
 } waterlily_file_t;
 
