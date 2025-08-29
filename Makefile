@@ -116,7 +116,7 @@ define find_library
 endef
 
 define find_dependencies 
-	$(foreach dep,$(1),$\
+	$(foreach dep,$($(1)_DEPENDENCIES),$\
 		$(if $(filter 0,$(shell pkg-config --exists $(dep); echo $$?)),$\
 			$(shell pkg-config --cflags --libs $(dep)),$\
 			$(call find_library,$(dep))$\
@@ -129,19 +129,24 @@ CFLAGS:=-std=gnu2x -Wall -Wextra -Wpedantic -Werror -I$(INCLUDE_DIRECTORY)
 PUBLIC_LIBRARY_DEPENDENCIES:=vulkan xkbcommon wayland-client
 ARCHIVER_EXECUTABLE_DEPENDENCIES:=glslang
 
+PUBLIC_LIBRARY_DEPENDENCY_FLAGS:=$(strip $(call find_dependencies,PUBLIC_LIBRARY))
+ARCHIVER_EXECUTABLE_DEPENDENCY_FLAGS:=$(strip $(call find_dependencies,ARCHIVER_EXECUTABLE))
+
 ################################################################################
 ## Define the project's build recipes.
 ################################################################################
 
 define create_library
 	$(AR) -qcs $($(1)) $($(1)_OUTPUTS) -l $\
-		"$(strip $(call find_dependencies,$($(1)_DEPENDENCIES))) $\
-		$(strip $(LDFLAGS))"
+		"$($(1)_DEPENDENCY_FLAGS) $(strip $(LDFLAGS))"
 endef
 
 define create_executable
-	$(CC) $($(1)_OUTPUTS) -o $($(1)) $(CFLAGS) $(strip $\
-		$(call find_dependencies,$($(1)_DEPENDENCIES)))
+	$(CC) $($(1)_OUTPUTS) -o $($(1)) $(CFLAGS) $($(1)_DEPENDENCY_FLAGS)
+endef
+
+define compile_file
+	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $< $($(1)_DEPENDENCY_FLAGS) 
 endef
 
 define find_mode
@@ -181,13 +186,13 @@ $(ARCHIVER_EXECUTABLE): $(ARCHIVER_EXECUTABLE_OUTPUTS) $(ARCHIVER_INTERFACES)
 	$(call create_executable,ARCHIVER_EXECUTABLE)
 
 $(BUILD_DIRECTORY)/%.o: $(SOURCE_DIRECTORY)/%.c 
-	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $< 
+	$(call compile_file,PUBLIC_LIBRARY)
 
 $(INTERNAL_BUILD_DIRECTORY)/%.o: $(INTERNAL_SOURCE_DIRECTORY)/%.c
-	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $<
+	$(call compile_file,PUBLIC_LIBRARY)
 
 $(ARCHIVER_BUILD_DIRECTORY)/%.o: $(ARCHIVER_SOURCE_DIRECTORY)/%.c
-	$(CC) -c -DFILENAME=\"$(notdir $<)\" $(CFLAGS) -o $@ $<
+	$(call compile_file,ARCHIVER_EXECUTABLE)
 
 $(BUILD_DIRECTORY):
 	mkdir -p $(INTERNAL_BUILD_DIRECTORY) $(ARCHIVER_BUILD_DIRECTORY)
